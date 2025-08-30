@@ -1,11 +1,12 @@
- ✓ Starting...
- ✓ Ready in 1840ms
- ○ Compiling /dashboard ...
- ✓ Compiled /dashboard in 1372ms (756 modules)
-Dashboard Page Error: [TypeError: Failed to parse URL from /api/websites] {
-  [cause]: [TypeError: Invalid URL] {
-    code: 'ERR_INVALID_URL',
-    input: '/api/websites'
-  }
+ GET /dashboard/websites/2cf7c87b-1260-4b28-8c38-6b559a6dcdce/clicks 500 in 835ms
+ ⨯ ReferenceError: website is not defined
+    at ClickHeatmapPage (app\dashboard\websites\[websiteId]\clicks\page.tsx:7:56)
+   5 |
+   6 |     return (
+>  7 |         <ClickHeatmap websiteId={websiteId} websiteUrl={website.url} />
+     |                                                        ^
+   8 |     );
+   9 | }
+  10 | {
+  digest: '1979871095'
 }
- GET /dashboard 200 in 1911ms

@@ -107,3 +107,10 @@
 - Isı haritası görüntüleme ekranları için ortak bir düzen yapısı (`layout.tsx` dosyası kullanılarak) uygulandı.
 - Isı haritası bileşenleri için veri getirme ve prop geçirme mekanizması yeniden düzenlendi (örneğin, `getWebsiteData` fonksiyonu tekrar `page.tsx` dosyalarına taşındı, `WebsiteContext` kaldırıldı).
 - Projeden artık kullanılmayan dosyalar (`HeatmapClient.tsx`, eski `page.tsx` dosyası, `HeatmapLayout.tsx`, `WebsiteContext.tsx`, `website.ts`) silindi.
+
+### Layout ve Veri Akışı İyileştirmeleri
+- Ortak gezinme çubuğu için web sitesi ayrıntılarını almak üzere `getWebsiteData` `layout.tsx`'e yeniden eklendi.
+- `website.url`'yi alt bileşenlere (`ClickHeatmap`, `MoveHeatmap`) geçirmek için `layout.tsx`'e `React.cloneElement` yeniden eklendi.
+- `page.tsx` dosyaları (`clicks/page.tsx`, `moves/page.tsx`), `website` verilerini almak ve `websiteId` ile `websiteUrl`'yi ilgili ısı haritası bileşenlerine prop olarak geçirmek üzere geri alındı.
+- `WebsiteContext.tsx` ve `lib/website.ts` artık gerekli olmadıkları için kaldırıldı.
+- `layout.tsx` ve `page.tsx` dosyalarındaki `params` bekleme sorunları düzeltildi.

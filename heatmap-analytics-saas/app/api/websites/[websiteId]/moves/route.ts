@@ -11,7 +11,7 @@ interface MoveEventFromDB {
 }
 
 export async function GET(request: NextRequest, context: any) {
-  const { websiteId } = context.params;
+  const { websiteId } = await context.params;
 
   if (!websiteId) {
     return NextResponse.json({ error: 'Website ID is required' }, { status: 400 });
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, context: any) {
 
   try {
     // 1. Authenticate user from JWT Cookie
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
 
     if (!token) {
