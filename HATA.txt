@@ -1,11 +1,29 @@
- ✓ Starting...
- ✓ Ready in 1840ms
- ○ Compiling /dashboard ...
- ✓ Compiled /dashboard in 1372ms (756 modules)
-Dashboard Page Error: [TypeError: Failed to parse URL from /api/websites] {
-  [cause]: [TypeError: Invalid URL] {
-    code: 'ERR_INVALID_URL',
-    input: '/api/websites'
-  }
+Error processing tracking data: Error [NeonDbError]: column "viewport_width" of relation "mousemove_events" does not exist
+    at async handleMoveEvent (app\api\track\route.ts:61:4)
+    at async POST (app\api\track\route.ts:22:12)
+  59 |
+  60 |     // JSON.stringify is needed to insert the array into the JSONB column.      
+> 61 |     await sql`
+     |    ^
+  62 |         INSERT INTO mousemove_events (website_id, points, url, viewport_width, viewport_height)
+  63 |         VALUES (${websiteId}, ${JSON.stringify(points)}, ${url}, ${viewportWidth}, ${viewportHeight});
+  64 |     `; {
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '65',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '1065',
+  routine: 'checkInsertTargets',
+  sourceError: undefined
 }
- GET /dashboard 200 in 1911ms
+ POST /api/track 500 in 457ms

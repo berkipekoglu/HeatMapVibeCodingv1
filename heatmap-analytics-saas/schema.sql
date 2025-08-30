@@ -35,6 +35,8 @@ CREATE TABLE mousemove_events (
     website_id UUID NOT NULL REFERENCES websites(id) ON DELETE CASCADE,
     points JSONB NOT NULL,
     url VARCHAR(2048) NOT NULL,
+    viewport_width INT NOT NULL,
+    viewport_height INT NOT NULL,
     timestamp TIMESTAMPTZ DEFAULT now()
 );
 
