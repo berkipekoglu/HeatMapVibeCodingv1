@@ -90,3 +90,20 @@
 - `/api/track` uç noktası, hem `click` hem de `mousemove` olay türlerini ayırt edip ilgili tablolara kaydedecek şekilde yeniden düzenlendi.
 - Fare hareketi verilerini ön yüze sunmak için yeni bir API uç noktası (`/api/websites/[websiteId]/moves/route.ts`) oluşturuldu.
 - `components/HeatmapClient.tsx` bileşeni, "Tıklama Haritası" ve "Hareket Haritası" arasında geçiş yapılmasına olanak tanıyan düğmelerle güncellendi ve seçilen türe göre ilgili veriyi çekip görselleştirecek şekilde yeniden yapılandırıldı.
+
+### Dashboard ve Isı Haritası Geliştirmeleri
+- `DashboardClient.tsx`'e web sitesi izleme betiğini gösteren bir modal ve buton eklendi.
+- `DashboardClient.tsx`'teki `lucide-react` ikon importu ile ilgili sözdizimi hatası düzeltildi.
+- `reset-db/route.ts` dosyası, `schema.sql`'i dinamik olarak okuyacak şekilde güncellenerek `mousemove_events` tablosunun oluşturulmaması hatası giderildi.
+- `schema.sql` dosyası, `mousemove_events` tablosuna `viewport_width` ve `viewport_height` sütunlarını içerecek şekilde güncellendi.
+- `moves/route.ts` dosyasındaki `cookies()` ve `context.params` kullanımlarındaki `await` eksiklikleri giderildi.
+- `ClickHeatmap.tsx` ve `MoveHeatmap.tsx` bileşenlerindeki Y ekseni koordinat kayması, hatalı ölçeklendirme mantığı kaldırılarak düzeltildi.
+- `tracker.js` betiği, `document.documentElement.clientWidth` kullanarak X ekseni koordinat kayması sorununu giderecek şekilde güncellendi.
+- `/api/screenshot/route.ts` ve ısı haritası bileşenleri (`ClickHeatmap.tsx`, `MoveHeatmap.tsx`), ekran görüntüsü alırken kullanıcının tarayıcı genişliğini dinamik olarak ayarlayacak şekilde güncellendi.
+- Büyük ekran görüntülerinin kırpılması sorunu, `ClickHeatmap.tsx` ve `MoveHeatmap.tsx`'teki CSS ayarları (`items-center` sınıfının kaldırılması ve `img` etiketi stilinin düzenlenmesi) ile çözüldü.
+- `HeatmapClient.tsx` bileşeni, `ClickHeatmap.tsx` ve `MoveHeatmap.tsx` olarak iki ayrı, daha modüler bileşene ayrıldı.
+- Tıklama ve hareket ısı haritaları için ayrı sayfa rotaları (`/dashboard/websites/[websiteId]/clicks` ve `/dashboard/websites/[websiteId]/moves`) oluşturuldu.
+- `DashboardClient.tsx`, yeni oluşturulan bu spesifik ısı haritası sayfalarına bağlantı verecek şekilde güncellendi.
+- Isı haritası görüntüleme ekranları için ortak bir düzen yapısı (`layout.tsx` dosyası kullanılarak) uygulandı.
+- Isı haritası bileşenleri için veri getirme ve prop geçirme mekanizması yeniden düzenlendi (örneğin, `getWebsiteData` fonksiyonu tekrar `page.tsx` dosyalarına taşındı, `WebsiteContext` kaldırıldı).
+- Projeden artık kullanılmayan dosyalar (`HeatmapClient.tsx`, eski `page.tsx` dosyası, `HeatmapLayout.tsx`, `WebsiteContext.tsx`, `website.ts`) silindi.
