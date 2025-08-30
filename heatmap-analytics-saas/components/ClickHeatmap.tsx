@@ -158,7 +158,7 @@ export default function ClickHeatmap({ websiteId, websiteUrl }: HeatmapProps) {
         </div>
       )}
       {screenshotUrl && (
-        <div className="relative inline-block" style={{ fontSize: 0 }}>
+        <div className="relative inline-block shadow" style={{ fontSize: 0 }}>
           <img
             ref={screenshotRef}
             src={screenshotUrl}

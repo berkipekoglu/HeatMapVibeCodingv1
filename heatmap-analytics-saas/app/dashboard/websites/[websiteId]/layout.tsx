@@ -1,20 +1,37 @@
+import React from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, MousePointerClick, Eye } from "lucide-react";
+import { notFound, redirect } from "next/navigation";
+import { getToken } from "@/lib/auth";
+import { sql } from "@vercel/postgres";
 
-import React from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, MousePointerClick, Eye } from 'lucide-react';
-import { notFound } from 'next/navigation';
+// Re-introduce getWebsiteData here
+async function getWebsiteData(websiteId: string) {
+  const token = await getToken();
+  if (!token) {
+    redirect("/login");
+  }
+
+  const { rows } = await sql`
+        SELECT id, name, url FROM websites WHERE id = ${websiteId} AND user_id = ${token.userId};
+    `;
+  return rows[0];
+}
 
 export default async function WebsiteLayout({
   children,
   params,
-}: { 
-    children: React.ReactNode;
-    params: { websiteId: string };
+}: {
+  children: React.ReactNode;
+  params: { websiteId: string };
 }) {
-    const { websiteId } = await params;
-    // website data is now fetched in page.tsx
-    // This layout only provides the UI structure
+  const { websiteId } = await params;
+  const website = await getWebsiteData(websiteId);
+
+  if (!website) {
+    notFound(); // Or handle error appropriately
+  }
 
   return (
     <div className="flex flex-col h-screen">
@@ -28,20 +45,21 @@ export default async function WebsiteLayout({
               </Link>
             </Button>
             <div>
-              {/* Website name and URL will be passed from page.tsx to children if needed */}
-              <h1 className="text-xl font-semibold text-gray-900">{websiteId}</h1>
-              <p className="text-sm text-gray-500 truncate">{websiteId}</p>
+              <h1 className="text-xl font-semibold text-gray-900">
+                {website.name}
+              </h1>
+              <p className="text-sm text-gray-500 truncate">{website.url}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/websites/${websiteId}/clicks`}>
+              <Link href={`/dashboard/websites/${website.id}/clicks`}>
                 <Eye className="w-4 h-4 mr-2" />
                 Click Map
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/websites/${websiteId}/moves`}>
+              <Link href={`/dashboard/websites/${website.id}/moves`}>
                 <MousePointerClick className="w-4 h-4 mr-2" />
                 Move Map
               </Link>
@@ -49,8 +67,15 @@ export default async function WebsiteLayout({
           </div>
         </div>
       </header>
-      <main className="flex-grow overflow-hidden">
-        {children}
+      <main className="flex-grow text-center items-center mt-2">
+        {React.Children.map(children, (child) => {
+          if (React.isValidElement(child)) {
+            return React.cloneElement(child, {
+              websiteUrl: website.url,
+            } as any);
+          }
+          return child;
+        })}
       </main>
     </div>
   );

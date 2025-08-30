@@ -1,32 +1,12 @@
- ⚠ Fast Refresh had to perform a full reload due to a runtime error.
- GET /dashboard/websites/2cf7c87b-1260-4b28-8c38-6b559a6dcdce/clicks 500 in 479ms
-Error: Route "/dashboard/websites/[websiteId]/clicks" used `params.websiteId`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at WebsiteLayout (app\dashboard\websites\[websiteId]\layout.tsx:17:48)
-  15 |     params: { websiteId: string };
-  16 | }) {
-> 17 |     const website = await getWebsiteData(params.websiteId);
-     |                                                ^
-  18 |
-  19 |     if (!website) {
-  20 |         notFound(); // Or handle error appropriately
-Error: Route "/dashboard/websites/[websiteId]/clicks" used `params.websiteId`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at ClickHeatmapPage (app\dashboard\websites\[websiteId]\clicks\page.tsx:9:36)
-   7 | }) {
-   8 |   return (
->  9 |     <ClickHeatmap websiteId={params.websiteId} websiteUrl={params.websiteUrl} />
-     |                                    ^
-  10 |   );
-  11 | }
-  12 |
- ⨯ Error: Attempted to call useWebsite() from the server but useWebsite is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
-    at <unknown> (C:\Users\berki\Desktop\HeatMapV1VibeCoding\heatmap-analytics-saas\.next\server\app\dashboard\websites\[websiteId]\clicks\page.js:101:20)
-    at ClickHeatmap (components\ClickHeatmap.tsx:22:40)
-  20 |
-  21 | export default function ClickHeatmap({ websiteId }: HeatmapProps) {
-> 22 |   const { url: websiteUrl } = useWebsite();
-     |                                        ^
-  23 |   const [eventData, setEventData] = useState<HeatmapEvent[]>([]);
-  24 |   const [isLoading, setIsLoading] = useState(true);
-  25 |   const [loadingMessage, setLoadingMessage] = useState('Loading click data...'); {
-  digest: '2194796783'
+ GET /dashboard/websites/2cf7c87b-1260-4b28-8c38-6b559a6dcdce/clicks 500 in 835ms
+ ⨯ ReferenceError: website is not defined
+    at ClickHeatmapPage (app\dashboard\websites\[websiteId]\clicks\page.tsx:7:56)
+   5 |
+   6 |     return (
+>  7 |         <ClickHeatmap websiteId={websiteId} websiteUrl={website.url} />
+     |                                                        ^
+   8 |     );
+   9 | }
+  10 | {
+  digest: '1979871095'
 }
