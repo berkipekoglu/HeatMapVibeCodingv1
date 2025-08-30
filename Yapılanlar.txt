@@ -83,3 +83,10 @@
 - `app/api/auth/login/route.ts`'nin cookie ayarlamak için `serialize` yöntemine geri döndürülmesi.
 - `app/api/auth/logout/route.ts`'deki cookie adı tutarsızlığının (`authToken` yerine `token`) düzeltilmesi ve `response.cookies.delete()` kullanımına geçilmesi.
 - `lib/auth.ts` dosyasındaki sözdizimi hatasının giderilmesi.
+
+### Hareket Haritası (Move Map) Özelliği
+- `schema.sql` dosyası, fare hareketi verilerini (`mousemove_events`) depolamak için yeni bir tablo ile güncellendi.
+- `public/tracker.js` betiği, fare hareketlerini (mousemove) yakalamak, arabelleğe almak ve periyodik olarak sunucuya göndermek üzere geliştirildi.
+- `/api/track` uç noktası, hem `click` hem de `mousemove` olay türlerini ayırt edip ilgili tablolara kaydedecek şekilde yeniden düzenlendi.
+- Fare hareketi verilerini ön yüze sunmak için yeni bir API uç noktası (`/api/websites/[websiteId]/moves/route.ts`) oluşturuldu.
+- `components/HeatmapClient.tsx` bileşeni, "Tıklama Haritası" ve "Hareket Haritası" arasında geçiş yapılmasına olanak tanıyan düğmelerle güncellendi ve seçilen türe göre ilgili veriyi çekip görselleştirecek şekilde yeniden yapılandırıldı.

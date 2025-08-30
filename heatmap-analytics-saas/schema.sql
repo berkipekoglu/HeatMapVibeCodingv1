@@ -28,7 +28,19 @@ CREATE TABLE click_events (
     timestamp TIMESTAMPTZ DEFAULT now()
 );
 
+-- Mouse Move Events Table: Stores batches of mouse movement coordinates.
+-- Using JSONB to store an array of points [{x, y}, {x, y}, ...]
+CREATE TABLE mousemove_events (
+    id BIGSERIAL PRIMARY KEY,
+    website_id UUID NOT NULL REFERENCES websites(id) ON DELETE CASCADE,
+    points JSONB NOT NULL,
+    url VARCHAR(2048) NOT NULL,
+    timestamp TIMESTAMPTZ DEFAULT now()
+);
+
 -- Create indexes for faster queries
 CREATE INDEX idx_websites_user_id ON websites(user_id);
 CREATE INDEX idx_click_events_website_id ON click_events(website_id);
 CREATE INDEX idx_click_events_timestamp ON click_events(timestamp);
+CREATE INDEX idx_mousemove_events_website_id ON mousemove_events(website_id);
+CREATE INDEX idx_mousemove_events_timestamp ON mousemove_events(timestamp);

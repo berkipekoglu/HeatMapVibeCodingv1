@@ -1,13 +1,14 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, useRef } from "react";
-import H from "heatmap.js";
+import React, { useEffect, useState, useRef } from 'react';
+import H from 'heatmap.js';
+import { Button } from './ui/button'; // Assuming shadcn button is available
 
-interface ClickEvent {
+interface HeatmapEvent {
   x: number;
   y: number;
-  viewport_width: number; // Changed to snake_case
-  viewport_height: number; // Changed to snake_case
+  viewport_width: number;
+  viewport_height: number;
 }
 
 interface HeatmapDataPoint {
@@ -18,183 +19,152 @@ interface HeatmapDataPoint {
 
 interface HeatmapClientProps {
   websiteId: string;
-  initialClickData: ClickEvent[];
   websiteUrl: string;
 }
 
-export default function HeatmapClient({
-  websiteId,
-  initialClickData,
-  websiteUrl,
-}: HeatmapClientProps) {
-  console.log("HeatmapClient: initialClickData received:", initialClickData);
-  const [clickData] = useState<ClickEvent[]>(initialClickData);
-  const [isLoading, setIsLoading] = useState(true);
+export default function HeatmapClient({ websiteId, websiteUrl }: HeatmapClientProps) {
+  const [heatmapType, setHeatmapType] = useState<'click' | 'move'>('click');
+  const [eventData, setEventData] = useState<HeatmapEvent[]>([]);
+  const [isScreenshotLoading, setIsScreenshotLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   const screenshotRef = useRef<HTMLImageElement>(null);
   const heatmapInstance = useRef<any>(null);
 
+  // Effect for fetching the website screenshot
   useEffect(() => {
-    console.log(
-      "HeatmapClient useEffect: Component mounted or clickData changed."
-    );
-
     const fetchScreenshot = async () => {
-      setIsLoading(true);
+      if (!websiteUrl) return;
+      setIsScreenshotLoading(true);
       try {
-        const response = await fetch(
-          `/api/screenshot?url=${encodeURIComponent(websiteUrl)}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch screenshot");
-        }
+        const response = await fetch(`/api/screenshot?url=${encodeURIComponent(websiteUrl)}`);
+        if (!response.ok) throw new Error('Failed to fetch screenshot');
         const base64Image = await response.text();
         setScreenshotUrl(`data:image/jpeg;base64,${base64Image}`);
       } catch (error) {
-        console.error("Error fetching screenshot:", error);
-        setScreenshotUrl(null); // Clear screenshot on error
+        console.error('Error fetching screenshot:', error);
+        setScreenshotUrl(null);
       } finally {
-        setIsLoading(false);
+        setIsScreenshotLoading(false);
       }
     };
-
     fetchScreenshot();
-  }, [websiteUrl]); // Re-fetch screenshot if websiteUrl changes
+  }, [websiteUrl]);
 
+  // Effect for fetching heatmap data (clicks or moves)
   useEffect(() => {
-    if (!heatmapContainerRef.current || !screenshotRef.current || isLoading) {
-      console.log(
-        "HeatmapClient useEffect (heatmap setup): Refs not ready or still loading."
-      );
+    const fetchData = async () => {
+      if (!websiteId) return;
+      setIsDataLoading(true);
+      const endpoint = heatmapType === 'click' ? 'clicks' : 'moves';
+      try {
+        const response = await fetch(`/api/websites/${websiteId}/${endpoint}`);
+        if (!response.ok) throw new Error(`Failed to fetch ${heatmapType} data`);
+        const data: HeatmapEvent[] = await response.json();
+        setEventData(data);
+      } catch (error) {
+        console.error(`Error fetching ${heatmapType} data:`, error);
+        setEventData([]);
+      } finally {
+        setIsDataLoading(false);
+      }
+    };
+    fetchData();
+  }, [websiteId, heatmapType]);
+
+  // Effect for initializing and updating the heatmap
+  useEffect(() => {
+    if (isScreenshotLoading || !screenshotUrl || !heatmapContainerRef.current || !screenshotRef.current) {
       return;
     }
 
-    // Ensure heatmap container matches screenshot dimensions
     const img = screenshotRef.current;
-    const updateHeatmapDimensions = () => {
+
+    const setupHeatmap = () => {
+      const screenshotWidth = img.naturalWidth;
+      const screenshotHeight = img.naturalHeight;
+
+      if (screenshotWidth === 0 || screenshotHeight === 0) return;
+
       if (heatmapContainerRef.current) {
-        const screenshotWidth = img.naturalWidth;
-        const screenshotHeight = img.naturalHeight;
-
-        console.log(
-          "HeatmapClient: img.naturalWidth:",
-          img.naturalWidth,
-          "img.naturalHeight:",
-          img.naturalHeight
-        );
-
-        if (screenshotWidth === 0 || screenshotHeight === 0) {
-          console.error(
-            "HeatmapClient: Screenshot dimensions are 0. Cannot set heatmap dimensions."
-          );
-          return;
-        }
-
-        heatmapContainerRef.current.style.width = `${screenshotWidth}px`;
-        heatmapContainerRef.current.style.height = `${screenshotHeight}px`;
-        console.log(
-          "HeatmapClient: Heatmap container dimensions set to",
-          screenshotWidth,
-          screenshotHeight
-        );
-
-        // Initialize heatmap instance if not already
-        if (!heatmapInstance.current) {
-          console.log("HeatmapClient: Initializing heatmap.js.");
-          heatmapInstance.current = H.create({
-            container: heatmapContainerRef.current,
-            radius: 25,
-            maxOpacity: 0.6,
-            minOpacity: 0.1,
-            blur: 0.85,
-          });
-          console.log(
-            "HeatmapClient: heatmapInstance created.",
-            heatmapInstance.current
-          );
-        }
-
-        // Prepare data for heatmap with scaling
-        const dataPoints: HeatmapDataPoint[] = clickData.map((click) => {
-          // Calculate scaling factors
-          const scaleX = screenshotWidth / click.viewport_width;
-          const scaleY = screenshotHeight / click.viewport_height;
-
-          return {
-            x: Math.round(click.x * scaleX),
-            y: Math.round(click.y * scaleY),
-            value: 1, // All clicks have the same weight for now
-          };
-        });
-
-        console.log("HeatmapClient: Data points prepared.", dataPoints);
-        if (dataPoints.length > 0) {
-          console.log(
-            "HeatmapClient: Setting heatmap data. Data points count:",
-            dataPoints.length
-          );
-          // Set data on the heatmap instance
-          heatmapInstance.current.setData({
-            max: 5, // Adjust max value for better visualization if needed
-            data: dataPoints,
-          });
-        } else {
-          console.log("HeatmapClient: No data points to set for heatmap.");
-          heatmapInstance.current.setData({ max: 1, data: [] }); // Clear heatmap if no data
-        }
+          heatmapContainerRef.current.style.width = `${screenshotWidth}px`;
+          heatmapContainerRef.current.style.height = `${screenshotHeight}px`;
       }
+
+      if (!heatmapInstance.current && heatmapContainerRef.current) {
+        heatmapInstance.current = H.create({
+          container: heatmapContainerRef.current,
+          radius: heatmapType === 'click' ? 25 : 15,
+          maxOpacity: 0.6,
+          minOpacity: 0.1,
+          blur: 0.85,
+        });
+      }
+      
+      // Update radius based on type
+      if (heatmapInstance.current) {
+          heatmapInstance.current._config.radius = heatmapType === 'click' ? 25 : 15;
+      }
+
+      const dataPoints: HeatmapDataPoint[] = eventData.map((event) => {
+        const scaleX = screenshotWidth / event.viewport_width;
+        const scaleY = screenshotHeight / event.viewport_height;
+        return {
+          x: Math.round(event.x * scaleX),
+          y: Math.round(event.y * scaleY),
+          value: 1,
+        };
+      });
+
+      heatmapInstance.current.setData({
+        max: heatmapType === 'click' ? 5 : 10, // Different max for better visualization
+        data: dataPoints,
+      });
     };
 
-    // If image is already loaded, update dimensions immediately
     if (img.complete) {
-      updateHeatmapDimensions();
+      setupHeatmap();
     } else {
-      // Otherwise, wait for image to load
-      img.onload = updateHeatmapDimensions;
+      img.onload = setupHeatmap;
     }
 
-    // Cleanup for image onload
-    return () => {
-      if (img) {
-        img.onload = null;
-      }
-    };
-  }, [isLoading, screenshotUrl, clickData]); // Dependencies for heatmap setup
+    return () => { img.onload = null; };
+
+  }, [isScreenshotLoading, screenshotUrl, eventData, heatmapType]);
 
   return (
-    <div className="relative w-full h-full overflow-auto flex justify-center items-center bg-gray-100">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
-          <p className="text-lg text-gray-600">Generating website preview...</p>
+    <div className="flex flex-col h-full">
+        <div className="flex-shrink-0 p-2 border-b bg-gray-50 flex items-center justify-center space-x-2">
+            <Button variant={heatmapType === 'click' ? 'default' : 'outline'} onClick={() => setHeatmapType('click')}>Click Map</Button>
+            <Button variant={heatmapType === 'move' ? 'default' : 'outline'} onClick={() => setHeatmapType('move')}>Move Map</Button>
         </div>
-      )}
-      {!isLoading && !screenshotUrl && (
-        <div className="text-red-500 text-center p-4">
-          <p>
-            Failed to load website preview. Please ensure the URL is accessible.
-          </p>
+        <div className="flex-grow relative w-full h-full overflow-auto flex justify-center items-center bg-gray-100">
+            {(isScreenshotLoading || isDataLoading) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
+                    <p className="text-lg text-gray-600">{isScreenshotLoading ? 'Generating website preview...' : 'Loading heatmap data...'}</p>
+                </div>
+            )}
+            {!isScreenshotLoading && !screenshotUrl && (
+                <div className="text-red-500 text-center p-4">
+                    <p>Failed to load website preview. Please ensure the URL is accessible.</p>
+                </div>
+            )}
+            {screenshotUrl && (
+                <div className="relative inline-block" style={{ fontSize: 0 }}>
+                    <img
+                        ref={screenshotRef}
+                        src={screenshotUrl}
+                        alt="Website Screenshot"
+                        className="max-w-full max-h-full object-contain"
+                    />
+                    <div
+                        ref={heatmapContainerRef}
+                        className="absolute top-0 left-0 z-10 pointer-events-none"
+                    />
+                </div>
+            )}
         </div>
-      )}
-      {!isLoading && screenshotUrl && (
-        <div
-          className="relative"
-          style={{ maxWidth: "100%", maxHeight: "100%" }}
-        >
-          <img
-            ref={screenshotRef}
-            src={screenshotUrl}
-            alt="Website Screenshot"
-            className="absolute top-0 left-0 w-full h-full object-contain"
-            onLoad={() => setIsLoading(false)} // This might be redundant due to fetchScreenshot's finally block
-          />
-          <div
-            ref={heatmapContainerRef}
-            className="absolute top-4 left-0 z-10 pointer-events-none"
-            style={{ width: "100%", height: "100%" }} // Initial size, will be updated by JS
-          />
-        </div>
-      )}
     </div>
   );
 }
