@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import H from "heatmap.js";
-import { Button } from "./ui/button"; // Assuming shadcn button is available
+import { Button } from "./ui/button";
 
 interface HeatmapEvent {
   x: number;
@@ -28,61 +28,72 @@ export default function HeatmapClient({
 }: HeatmapClientProps) {
   const [heatmapType, setHeatmapType] = useState<"click" | "move">("click");
   const [eventData, setEventData] = useState<HeatmapEvent[]>([]);
-  const [isScreenshotLoading, setIsScreenshotLoading] = useState(true);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState(
+    "Loading heatmap data..."
+  );
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   const screenshotRef = useRef<HTMLImageElement>(null);
   const heatmapInstance = useRef<any>(null);
 
-  // Effect for fetching the website screenshot
+  // Combined effect for fetching data and then the screenshot
   useEffect(() => {
-    const fetchScreenshot = async () => {
-      if (!websiteUrl) return;
-      setIsScreenshotLoading(true);
-      try {
-        const response = await fetch(
-          `/api/screenshot?url=${encodeURIComponent(websiteUrl)}`
-        );
-        if (!response.ok) throw new Error("Failed to fetch screenshot");
-        const base64Image = await response.text();
-        setScreenshotUrl(`data:image/jpeg;base64,${base64Image}`);
-      } catch (error) {
-        console.error("Error fetching screenshot:", error);
-        setScreenshotUrl(null);
-      } finally {
-        setIsScreenshotLoading(false);
-      }
-    };
-    fetchScreenshot();
-  }, [websiteUrl]);
-
-  // Effect for fetching heatmap data (clicks or moves)
-  useEffect(() => {
-    const fetchData = async () => {
+    const fetchAll = async () => {
       if (!websiteId) return;
-      setIsDataLoading(true);
+
+      setIsLoading(true);
+      setScreenshotUrl(null); // Reset screenshot on new data fetch
+
+      // 1. Fetch heatmap event data
+      setLoadingMessage(`Loading ${heatmapType} data...`);
       const endpoint = heatmapType === "click" ? "clicks" : "moves";
+      let data: HeatmapEvent[] = [];
       try {
-        const response = await fetch(`/api/websites/${websiteId}/${endpoint}`);
-        if (!response.ok)
-          throw new Error(`Failed to fetch ${heatmapType} data`);
-        const data: HeatmapEvent[] = await response.json();
+        const dataRes = await fetch(`/api/websites/${websiteId}/${endpoint}`);
+        if (!dataRes.ok) throw new Error(`Failed to fetch ${heatmapType} data`);
+        data = await dataRes.json();
         setEventData(data);
       } catch (error) {
         console.error(`Error fetching ${heatmapType} data:`, error);
         setEventData([]);
-      } finally {
-        setIsDataLoading(false);
+        setIsLoading(false);
+        return; // Stop if data fetching fails
       }
-    };
-    fetchData();
-  }, [websiteId, heatmapType]);
 
-  // Effect for initializing and updating the heatmap
+      if (data.length === 0) {
+        console.log("No data found, skipping screenshot.");
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Fetch screenshot using the viewport width from the first data point
+      setLoadingMessage("Generating website preview...");
+      try {
+        const representativeWidth = data[0].viewport_width;
+        const screenshotRes = await fetch(
+          `/api/screenshot?url=${encodeURIComponent(
+            websiteUrl
+          )}&w=${representativeWidth}`
+        );
+        if (!screenshotRes.ok) throw new Error("Failed to fetch screenshot");
+        const base64Image = await screenshotRes.text();
+        setScreenshotUrl(`data:image/jpeg;base64,${base64Image}`);
+      } catch (error) {
+        console.error("Error fetching screenshot:", error);
+        setScreenshotUrl(null);
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchAll();
+  }, [websiteId, websiteUrl, heatmapType]);
+
+  // Effect for rendering the heatmap
   useEffect(() => {
     if (
-      isScreenshotLoading ||
+      isLoading ||
       !screenshotUrl ||
       !heatmapContainerRef.current ||
       !screenshotRef.current
@@ -91,44 +102,32 @@ export default function HeatmapClient({
     }
 
     const img = screenshotRef.current;
-    console.log("image width:", img.width);
-    console.log("image height:", img.height);
-    console.log("image natural width:", img.naturalWidth);
-    console.log("image natural height:", img.naturalHeight);
 
     const setupHeatmap = () => {
       const screenshotWidth = img.naturalWidth;
-      const screenshotHeight = img.naturalHeight;
-
-      if (screenshotWidth === 0 || screenshotHeight === 0) return;
+      if (screenshotWidth === 0) return;
 
       if (heatmapContainerRef.current) {
         heatmapContainerRef.current.style.width = `${screenshotWidth}px`;
-        heatmapContainerRef.current.style.height = `${screenshotHeight}px`;
+        heatmapContainerRef.current.style.height = `${img.naturalHeight}px`;
       }
 
       if (!heatmapInstance.current && heatmapContainerRef.current) {
         heatmapInstance.current = H.create({
           container: heatmapContainerRef.current,
-          radius: heatmapType === "click" ? 25 : 15,
-          maxOpacity: 0.6,
-          minOpacity: 0.1,
-          blur: 0.85,
         });
       }
 
-      // Update radius based on type
-      if (heatmapInstance.current) {
-        heatmapInstance.current._config.radius =
-          heatmapType === "click" ? 25 : 15;
-      }
+      // Configure heatmap based on type
+      heatmapInstance.current.configure({
+        radius: heatmapType === "click" ? 25 : 15,
+        maxOpacity: 0.6,
+        minOpacity: 0.1,
+        blur: 0.85,
+      });
 
       const dataPoints: HeatmapDataPoint[] = eventData.map((event) => {
-        // Scale horizontal position based on the ratio of screenshot width to viewport width
         const scaleX = screenshotWidth / event.viewport_width;
-
-        // Y-coordinate does not need scaling because we have a full-page screenshot
-        // and pageY is relative to the document top.
         return {
           x: Math.round(event.x * scaleX),
           y: event.y,
@@ -137,7 +136,7 @@ export default function HeatmapClient({
       });
 
       heatmapInstance.current.setData({
-        max: heatmapType === "click" ? 5 : 10, // Different max for better visualization
+        max: heatmapType === "click" ? 5 : 10,
         data: dataPoints,
       });
     };
@@ -151,7 +150,7 @@ export default function HeatmapClient({
     return () => {
       img.onload = null;
     };
-  }, [isScreenshotLoading, screenshotUrl, eventData, heatmapType]);
+  }, [isLoading, screenshotUrl, eventData, heatmapType]);
 
   return (
     <div className="flex flex-col h-full">
@@ -169,17 +168,20 @@ export default function HeatmapClient({
           Move Map
         </Button>
       </div>
-      <div className="flex-grow relative w-full h-full overflow-auto flex justify-center items-center bg-gray-100">
-        {(isScreenshotLoading || isDataLoading) && (
+      <div className="flex-grow relative w-full h-full overflow-auto flex justify-center items-center bg-gray-100 p-4">
+        {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
+            <p className="text-lg text-gray-600">{loadingMessage}</p>
+          </div>
+        )}
+        {!isLoading && eventData.length === 0 && (
+          <div className="text-center p-4">
             <p className="text-lg text-gray-600">
-              {isScreenshotLoading
-                ? "Generating website preview..."
-                : "Loading heatmap data..."}
+              No data available for this period or heatmap type.
             </p>
           </div>
         )}
-        {!isScreenshotLoading && !screenshotUrl && (
+        {!isLoading && !screenshotUrl && eventData.length > 0 && (
           <div className="text-red-500 text-center p-4">
             <p>
               Failed to load website preview. Please ensure the URL is
@@ -188,16 +190,16 @@ export default function HeatmapClient({
           </div>
         )}
         {screenshotUrl && (
-          <div className="relative w-fit">
+          <div className="relative inline-block" style={{ fontSize: 0 }}>
             <img
               ref={screenshotRef}
               src={screenshotUrl}
               alt="Website Screenshot"
-              className="absolute w-full h-auto object-contain"
+              className="absolute max-w-full max-h-full object-contain"
             />
             <div
               ref={heatmapContainerRef}
-              className="absolute w-fit inset-0 z-10 pointer-events-none object-contain"
+              className="absolute top-0 left-0 z-10 pointer-events-none"
             />
           </div>
         )}
