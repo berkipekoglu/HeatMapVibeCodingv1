@@ -1,0 +1,11 @@
+ ✓ Starting...
+ ✓ Ready in 1840ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1372ms (756 modules)
+Dashboard Page Error: [TypeError: Failed to parse URL from /api/websites] {
+  [cause]: [TypeError: Invalid URL] {
+    code: 'ERR_INVALID_URL',
+    input: '/api/websites'
+  }
+}
+ GET /dashboard 200 in 1911ms

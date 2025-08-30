@@ -1,0 +1,93 @@
+Proje: Uçtan Uca Heatmap Analytics SAAS Uygulaması
+Versiyon: 1.0
+Hazırlayan: Gemini (Senior SAAS Engineer)
+
+---
+**1. ÖZET**
+---
+Bu belge, kullanıcıların web sayfaları üzerindeki etkileşimlerini (tıklamalar, fare hareketleri, kaydırma) izleyerek ısı haritaları ve analitik raporlar sunan bir SAAS (Software as a Service) uygulamasının geliştirme planını detaylandırmaktadır. Proje, tamamen ücretsiz araçlar ve teknolojiler kullanılarak uçtan uca hayata geçirilecektir.
+
+---
+**2. ARAŞTIRMA VE ANALİZ FAZI (FAZ 1)**
+---
+Bu fazın amacı, projenin temelini sağlam bir bilgi birikimi üzerine kurmaktır.
+
+*   **2.1. Pazar ve Rakip Analizi:**
+    *   **Hedef:** Hotjar, Crazy Egg, VWO gibi mevcut heatmap araçlarının özellik setlerini, fiyatlandırma modellerini ve kullanıcı deneyimlerini analiz etmek.
+    *   **Aksiyon:** Temel özellikler (tıklama, hareket, kaydırma haritaları), oturum kayıtları, anketler gibi ek özellikleri not almak. Ücretsiz sunulan limitleri ve kısıtları öğrenmek.
+
+*   **2.2. Teknik Prensiplerin Araştırılması:**
+    *   **Hedef:** Isı haritası oluşturmanın teknik altyapısını anlamak.
+    *   **Aksiyonlar:**
+        *   **Veri Toplama:** İstemci tarafında (client-side) çalışacak, sayfa performansını minimum etkileyecek hafif bir JavaScript betiğinin nasıl yazılacağını araştırmak. `mousemove`, `click`, `scroll` event'lerini verimli bir şekilde dinleme yöntemleri.
+        *   **Veri İletimi:** Toplanan verilerin periyodik olarak ve toplu halde (batching) sunucuya nasıl gönderileceğini araştırmak (`Beacon API`, `Fetch API` kullanımı).
+        *   **Veri İşleme ve Depolama:** Gelen yoğun veriyi (event stream) nasıl verimli bir şekilde depolayacağımızı ve ısı haritası oluşturmak için nasıl işleyeceğimizi araştırmak.
+        *   **Görselleştirme:** İşlenmiş verinin bir web sayfası ekran görüntüsü üzerine nasıl bindirileceğini (overlay) araştırmak. `heatmap.js`, `d3.js` gibi kütüphaneleri incelemek.
+
+---
+**3. MİMARİ VE TEKNOLOJİ SEÇİMİ (FAZ 2)**
+---
+Bu fazda, projenin iskeletini oluşturacak teknolojiler ve mimari yapı belirlenir. Tüm seçimler "ücretsiz olma" kuralına uygun olacaktır.
+
+*   **3.1. Teknoloji Yığını (Technology Stack):**
+    *   **Frontend (Panel):** Next.js (React) - Hem modern bir kullanıcı arayüzü sunması, hem de sunucu tarafı render (SSR) ve API rotaları (API Routes) yetenekleriyle backend ihtiyacının bir kısmını karşılaması sebebiyle seçilmiştir.
+    *   **Backend (API & Veri İşleme):** Node.js (Next.js API Routes ile) ve ek veri işleme için gerekirse ayrı bir Node.js servisi. Dil bütünlüğü ve geliştirme hızı için idealdir.
+    *   **Veritabanı:** PostgreSQL - Hem ilişkisel verileri (kullanıcılar, web siteleri) hem de JSONB formatı sayesinde esnek event verilerini verimli bir şekilde saklayabilen, güçlü ve açık kaynaklı bir veritabanıdır.
+    *   **Veri Toplama Betiği (Tracker Script):** Vanilla JavaScript (ES6+) - Bağımlılıkları olmayan, olabildiğince küçük boyutlu ve tüm modern tarayıcılarda çalışacak saf JavaScript.
+    *   **Dağıtım (Deployment):** Vercel - Next.js ile mükemmel entegrasyonu, cömert ücretsiz kullanım katmanı ve otomatik CI/CD süreçleri sayesinde projenin kolayca yayınlanmasını sağlar. Veritabanı için "Vercel Postgres" veya "Supabase" gibi ücretsiz katman sunan servisler kullanılacaktır.
+
+*   **3.2. Mimari Yapı:**
+    *   **Monorepo Yaklaşımı:** Tek bir Git reposu içerisinde hem SAAS paneli (Next.js) hem de ilgili diğer servisler (gerekirse) barındırılacaktır.
+    *   **Veri Akışı:**
+        1.  Müşteri web sitesine `tracker.js` betiği eklenir.
+        2.  Betik, kullanıcı etkileşimlerini yakalar ve periyodik olarak bizim API'mize (Next.js API Route) gönderir.
+        3.  API, gelen veriyi doğrular ve PostgreSQL veritabanına kaydeder.
+        4.  Kullanıcı, SAAS paneline giriş yaptığında, ilgili web sitesi için toplanan veriler veritabanından çekilir.
+        5.  Backend, bu ham veriyi istenen tarih aralığı için işleyerek (aggregate) bir ısı haritası veri setine dönüştürür.
+        6.  Frontend, bu veri setini ve hedef sayfanın bir temsilini (örn. iframe veya screenshot) alarak `heatmap.js` gibi bir kütüphane ile görselleştirir.
+
+---
+**4. GELİŞTİRME AŞAMALARI (FAZ 3)**
+---
+Proje, yönetilebilir adımlara bölünerek geliştirilecektir.
+
+*   **4.1. MVP (Minimum Viable Product) - Çekirdek Fonksiyonellik:**
+    *   **Adım 1: Veri Toplama ve Depolama**
+        *   `tracker.js` betiğinin ilk versiyonunun yazılması (sadece tıklama koordinatlarını toplar).
+        *   Verileri kabul edecek temel bir API endpoint'inin oluşturulması.
+        *   `users`, `websites`, `click_events` tablolarını içeren PostgreSQL şemasının oluşturulması.
+    *   **Adım 2: Temel Kullanıcı Yönetimi ve Panel**
+        *   Kullanıcı kaydı ve girişi (Authentication).
+        *   Kullanıcıların izlemek istedikleri web sitelerini kaydedebilecekleri bir arayüz.
+        *   Her site için benzersiz `tracker.js` betiği sunulması.
+    *   **Adım 3: İlk Isı Haritası Görselleştirmesi**
+        *   Belirli bir sayfa için toplanan tıklama verilerini işleyen bir backend fonksiyonu.
+        *   Bu veriyi `heatmap.js` kullanarak basit bir şekilde bir `div` üzerinde gösteren bir panel sayfası.
+
+*   **4.2. Sürüm 1.0 - Gelişmiş Özellikler:**
+    *   **Adım 4: Gelişmiş Veri Toplama**
+        *   `tracker.js`'e fare hareketi (mousemove) ve kaydırma derinliği (scroll depth) takibinin eklenmesi.
+        *   Veritabanı şemasının yeni event türlerini destekleyecek şekilde güncellenmesi.
+    *   **Adım 5: Gelişmiş Raporlama ve Filtreleme**
+        *   Panele hareket ve kaydırma haritası sekmelerinin eklenmesi.
+        *   Tarih aralığına, cihaz türüne (mobil/desktop) göre filtreleme seçeneklerinin eklenmesi.
+        *   Sayısal istatistiklerin sunulması (toplam tıklama, ortalama kaydırma yüzdesi vb.).
+    *   **Adım 6: Sayfa Üzerinde Gösterim**
+        *   Isı haritasını, müşterinin gerçek web sayfası üzerinde gösterme yeteneğinin geliştirilmesi.
+        *   **Mevcut Yaklaşım (iFrame):** iFrame tabanlı gösterim denendi ancak güvenlik kısıtlamaları (CORS, X-Frame-Options) nedeniyle genel çözüm olarak uygun bulunmadı.
+        *   **Yeni Yaklaşım (Sunucu Tarafı Ekran Görüntüsü):** Müşterinin web sayfasının sunucu tarafında (headless browser kullanarak) ekran görüntüsünü alıp, bu statik görüntü üzerine ısı haritasını bindirme yeteneğinin geliştirilmesi.
+            *   **Aksiyon 6.1:** Sunucu tarafı ekran görüntüsü alma kütüphanesi/aracı araştırılması (örn. Puppeteer, Playwright).
+            *   **Aksiyon 6.2:** Ekran görüntüsü alacak yeni bir API endpoint'i oluşturulması.
+            *   **Aksiyon 6.3:** `HeatmapClient.tsx` bileşeninin, `iframe` yerine bu ekran görüntüsünü gösterecek ve ısı haritasını üzerine bindirecek şekilde güncellenmesi.
+
+---
+**5. TEST VE DAĞITIM (FAZ 4)**
+---
+*   **5.1. Test Süreçleri:**
+    *   Birim testleri (Unit Tests) ve entegrasyon testleri (Integration Tests) ile kod kalitesinin güvence altına alınması.
+    *   `tracker.js` betiğinin farklı web siteleri ve tarayıcılar üzerindeki performans ve uyumluluk testleri.
+*   **5.2. Dağıtım:**
+    *   Projenin Vercel'e bağlanması.
+    *   Ücretsiz bir PostgreSQL servisinin (örn. Supabase) Vercel projesine entegre edilmesi.
+    *   Otomatik dağıtım (CI/CD) süreçlerinin yapılandırılması.
+    *   Canlıya geçiş öncesi son kullanıcı testleri (UAT).

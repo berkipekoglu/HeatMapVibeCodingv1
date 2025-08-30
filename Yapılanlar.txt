@@ -1,0 +1,85 @@
+- Proje geliştirme planı oluşturuldu ve `Gelistirme_Plani.txt` dosyasına kaydedildi.
+- Heatmap analitik sistemlerinin çalışma prensipleri üzerine teknik araştırma yapıldı.
+- Next.js (TypeScript, Tailwind CSS) ile projenin temel iskeleti `heatmap-analytics-saas` klasöründe oluşturuldu.
+- Veri toplama betiği `tracker.js`'in ilk versiyonu oluşturuldu ve `public` klasörüne eklendi.
+- Gelen verileri karşılamak için `/api/track` API endpoint'i oluşturuldu.
+- Veritabanı şeması `schema.sql` dosyasında tanımlandı.
+- `@vercel/postgres` paketi projeye eklendi.
+- `/api/track` endpoint'i, gelen verileri veritabanına kaydedecek şekilde güncellendi.
+- Veritabanı bağlantı bilgileri için `.env.local` dosyası oluşturuldu ve `.gitignore` dosyasına eklendi.
+- Kullanıcı kimlik doğrulama (authentication) için `bcryptjs`, `jsonwebtoken` ve `cookie` paketleri kuruldu.
+- `/api/auth/signup`, `/api/auth/login` ve `/api/auth/logout` API endpoint'leri oluşturuldu.
+- Oturum yönetimi için JWT (JSON Web Token) gizli anahtarı `.env.local` dosyasına eklendi.
+- Isı haritası verilerini getiren API endpoint'i (`/api/websites/[websiteId]/clicks`) oluşturuldu.
+- `heatmap.js` kütüphanesi projeye dahil edildi.
+- Dinamik ısı haritası görüntüleme sayfası (`/dashboard/websites/[websiteId]/page.tsx`) oluşturuldu.
+- Dashboard'daki web sitesi listesinden ısı haritası sayfasına bağlantı eklendi.
+- `package.json` dosyası Next.js betikleri ve bağımlılıkları ile güncellendi.
+- `src/app/layout.tsx` dosyası oluşturuldu.
+- `src/app/globals.css` dosyası oluşturuldu.
+- `tsconfig.json` dosyası oluşturuldu.
+- `src/app/api/websites/[websiteId]/clicks/route.ts` dosyasındaki tip hatası düzeltildi.
+- `src/app/dashboard/websites/[websiteId]/page.tsx` dosyasındaki tip hatası düzeltildi.
+- `src/app/api/websites/[websiteId]/clicks/route.ts` dosyasındaki `cookies()` çağrısına `await` eklendi.
+- Veritabanı bağlantısını test etmek için `/api/db-test` API endpoint'i oluşturuldu.
+- Veritabanı tablolarını otomatik olarak oluşturmak için `/api/init-db` API endpoint'i oluşturuldu.
+- `signup/route.ts` dosyasına hata ayıklama için `console.log` ifadeleri eklendi.
+- `login/route.ts` dosyasındaki çerez adı `authToken`'dan `token`'a değiştirildi.
+- `login/route.ts` dosyasındaki varsayılan `JWT_SECRET` kaldırıldı.
+- `tracker.js` dosyası sözdizimi hatası düzeltildi, API endpoint'i güncellendi ve `websiteId` dinamik olarak alındı.
+- `track/route.ts` dosyasındaki `siteId` alanı `websiteId` olarak düzeltildi.
+- `track/route.ts` dosyasındaki `POST` yanıtına `Access-Control-Allow-Origin` başlığı eklendi.
+- `clicks/route.ts` dosyasındaki `params`'ın `await` edilmesi sağlandı.
+- `clicks/route.route.ts` dosyasındaki `click_events` tablosundan `created_at` sütunu yerine `timestamp` sütunu kullanıldı.
+- `clicks/route.ts` dosyasındaki SQL sorgusundan JavaScript yorumu kaldırıldı.
+- `dashboard/websites/[websiteId]/page.tsx` bileşeni `async` yapıldı ve `params`'ın `await` edilmesi sağlandı.
+- Kullanıcıların web sitelerini yönetmesi için `/api/websites` API endpoint'i (GET ve POST) oluşturuldu.
+- Kimlik doğrulama yardımcı fonksiyonu `getToken` (`src/lib/auth.ts`) oluşturuldu.
+- Dashboard sayfası (`src/app/dashboard/page.tsx`) web sitesi ekleme formu ve mevcut web sitelerini listeleme özelliği ile güncellendi.
+- Web sitesi detaylarını getirmek için `/api/websites/[websiteId]` API endpoint'i (GET) oluşturuldu.
+- Isı haritası görüntüleme sayfası (`src/app/dashboard/websites/[websiteId]/page.tsx`) web sitesi URL'sini getirecek ve `HeatmapClient` bileşenine iletecek şekilde güncellendi.
+- `HeatmapClient.tsx` bileşeni, web sitesini bir `iframe` içinde gösterecek ve ısı haritasını `iframe` üzerine bindirecek şekilde güncellendi.
+- `src/lib/auth.ts`'deki `cookies()` çağrısı `await` edildi.
+- `src/lib/auth.ts`'deki `UserPayload` arayüzü `id` yerine `userId` kullanacak şekilde güncellendi.
+- `src/app/api/websites/route.ts`'deki `POST` endpoint'i `name` alanını kabul edecek ve veritabanına kaydedecek şekilde güncellendi.
+- `src/app/dashboard/page.tsx`'deki web sitesi ekleme formu `name` alanını içerecek şekilde güncellendi.
+- `src/app/dashboard/websites/[websiteId]/page.tsx` ve `src/app/api/websites/[websiteId]/route.ts`'deki `params` kullanımı `await` edilecek şekilde düzeltildi.
+- `src/app/api/websites/route.ts`'deki `GET` endpoint'i, `user.userId`'nin SQL sorgusunda doğru şekilde kullanılması için parametreli sorgu formatına getirildi ve `userId`'nin string olarak cast edilmesi sağlandı.
+- `iframe` tabanlı sayfa gösteriminden sunucu tarafı ekran görüntüsü tabanlı gösterime geçiş yapıldı.
+- Playwright kütüphanesi kuruldu (`npm install playwright`).
+- Ekran görüntüsü almak için `/api/screenshot` API endpoint'i oluşturuldu.
+- `HeatmapClient.tsx` bileşeni, `iframe` yerine `/api/screenshot` endpoint'inden alınan ekran görüntüsünü gösterecek ve ısı haritasını bu görüntü üzerine bindirecek şekilde güncellendi.
+- Playwright tarayıcıları indirildi (`npx playwright install`).
+- `src/components/HeatmapClient.tsx`'deki `useState` ve `useRef` importları geri eklendi.
+- `public/tracker.js` `pageX`, `pageY`, `viewportWidth` ve `viewportHeight`'i yakalayacak şekilde güncellendi.
+- `src/app/api/track/route.ts` bu yeni alanları kabul edecek ve depolayacak şekilde güncellendi.
+- `schema.sql` `click_events` tablosuna `viewport_width` ve `viewport_height` sütunlarını ekleyecek şekilde güncellendi.
+- `src/app/api/websites/[websiteId]/clicks/route.ts` `viewport_width` ve `viewport_height` sütunlarını getirecek şekilde güncellendi.
+- `src/components/HeatmapClient.tsx`'deki `ClickEvent` arayüzü `viewport_width` ve `viewport_height` için `snake_case` kullanacak şekilde güncellendi.
+- `src/app/api/reset-db/route.ts` endpoint'i oluşturuldu (tabloları bırakıp yeniden oluşturmak için).
+- `src/app/api/init-db/route.ts` endpoint'i orijinal davranışına geri döndürüldü (tabloları bırakmadan).
+- `src/components/HeatmapClient.tsx`'deki heatmap container'ın konumlandırma sorunu `inline-block` ile düzeltildi.
+- `tailwind.config.js` dosyası oluşturuldu.
+- `postcss.config.js` dosyası oluşturuldu.
+
+
+### Dashboard Yeniden Tasarımı (`shadcn/ui` Entegrasyonu)
+- `shadcn/ui`'ın manuel kurulumu ve yapılandırması (`components.json`, `tailwind.config.js`, `globals.css`, `lib/utils.ts` güncellemeleri dahil).
+- `tailwindcss-animate`, `clsx`, `tailwind-merge`, `lucide-react` paketlerinin kurulumu.
+- `shadcn/ui` component'lerinin (`Card`, `Table`, `Button`, `Dialog`, `Input`, `Label`) projeye eklenmesi.
+- `/api/websites` API'sinin yanıtına `click_count` alanının eklenmesi.
+- `app/dashboard/page.tsx`'in Sunucu Bileşeni olarak yeniden düzenlenmesi ve `DashboardClient.tsx` İstemci Bileşeni'nin oluşturulması.
+
+### Proje Yapısı Geçişi (`src`'den Kök Dizine)
+- `src/app`, `src/components`, `src/lib` klasörlerinin proje kök dizinine taşınması.
+- `tailwind.config.js`'deki içerik yollarının güncellenmesi.
+- `tsconfig.json`'ın doğrulanması (değişiklik gerekmedi).
+- `app/api/websites/route.ts` dosyasındaki import yolunun düzeltilmesi.
+- Boş kalan `src` klasörünün silinmesi.
+
+### Kimlik Doğrulama/Cookie Sorunu Hata Ayıklama ve Düzeltmeleri
+- `postcss.config.mjs` yapılandırmasının düzeltilmesi (CSS sorunlarını giderdi).
+- `app/dashboard/page.tsx`'deki `cookies()` kullanımının düzeltilmesi (token'ın alınması ve `fetch` başlığına eklenmesi, token yoksa yönlendirme).
+- `app/api/auth/login/route.ts`'nin cookie ayarlamak için `serialize` yöntemine geri döndürülmesi.
+- `app/api/auth/logout/route.ts`'deki cookie adı tutarsızlığının (`authToken` yerine `token`) düzeltilmesi ve `response.cookies.delete()` kullanımına geçilmesi.
+- `lib/auth.ts` dosyasındaki sözdizimi hatasının giderilmesi.
