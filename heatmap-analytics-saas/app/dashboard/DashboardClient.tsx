@@ -24,7 +24,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BarChart, Globe, PlusCircle, Power, Eye } from "lucide-react";
+import {
+  BarChart,
+  Globe,
+  PlusCircle,
+  Eye,
+  Code,
+  Copy,
+  Check,
+} from "lucide-react";
 
 export interface WebsiteData {
   id: string;
@@ -38,6 +46,66 @@ interface DashboardClientProps {
   initialWebsites: WebsiteData[];
   totalClicks: number;
   totalWebsites: number;
+}
+
+// Helper component for the tracker script modal to manage its own state
+function TrackerScriptDialog({ site }: { site: WebsiteData }) {
+  const [hasCopied, setHasCopied] = useState(false);
+  const scriptText = `<script async defer data-website-id="${site.id}" src="http://localhost:3000/tracker.js"></script>`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(scriptText).then(() => {
+      setHasCopied(true);
+      setTimeout(() => setHasCopied(false), 2500);
+    });
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="icon" className="ml-2">
+          <Code className="h-4 w-4" />
+          <span className="sr-only">Get Tracker Code</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>"{site.name}" için Tracker Scripti</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            Bu kodu kopyalayıp, sitenizin &lt;head&gt; etiketinin içine
+            yapıştırın.
+          </p>
+          <div className="relative">
+            <pre className="bg-gray-900 text-white rounded-md p-4 pr-16 text-sm overflow-x-auto text-wrap">
+              <code>{scriptText}</code>
+            </pre>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 text-gray-400 hover:text-white hover:bg-gray-700"
+              onClick={handleCopy}
+            >
+              {hasCopied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              <span className="sr-only">{hasCopied ? "Copied" : "Copy"}</span>
+            </Button>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">
+              Close
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export default function DashboardClient({
@@ -226,6 +294,7 @@ export default function DashboardClient({
                             Isı Haritasını Görüntüle
                           </Link>
                         </Button>
+                        <TrackerScriptDialog site={site} />
                       </TableCell>
                     </TableRow>
                   ))
