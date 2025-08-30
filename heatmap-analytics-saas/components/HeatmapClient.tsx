@@ -124,11 +124,14 @@ export default function HeatmapClient({
       }
 
       const dataPoints: HeatmapDataPoint[] = eventData.map((event) => {
+        // Scale horizontal position based on the ratio of screenshot width to viewport width
         const scaleX = screenshotWidth / event.viewport_width;
-        const scaleY = screenshotHeight / event.viewport_height;
+
+        // Y-coordinate does not need scaling because we have a full-page screenshot
+        // and pageY is relative to the document top.
         return {
           x: Math.round(event.x * scaleX),
-          y: Math.round(event.y * scaleY),
+          y: event.y,
           value: 1,
         };
       });
@@ -190,11 +193,11 @@ export default function HeatmapClient({
               ref={screenshotRef}
               src={screenshotUrl}
               alt="Website Screenshot"
-              className="absolute w-full h-auto"
+              className="absolute w-full h-auto object-contain"
             />
             <div
               ref={heatmapContainerRef}
-              className="absolute inset-0 z-10 pointer-events-none"
+              className="absolute w-fit inset-0 z-10 pointer-events-none object-contain"
             />
           </div>
         )}
