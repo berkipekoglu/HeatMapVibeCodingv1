@@ -1,29 +1,14 @@
-Error processing tracking data: Error [NeonDbError]: column "viewport_width" of relation "mousemove_events" does not exist
-    at async handleMoveEvent (app\api\track\route.ts:61:4)
-    at async POST (app\api\track\route.ts:22:12)
-  59 |
-  60 |     // JSON.stringify is needed to insert the array into the JSONB column.      
-> 61 |     await sql`
-     |    ^
-  62 |         INSERT INTO mousemove_events (website_id, points, url, viewport_width, viewport_height)
-  63 |         VALUES (${websiteId}, ${JSON.stringify(points)}, ${url}, ${viewportWidth}, ${viewportHeight});
-  64 |     `; {
-  severity: 'ERROR',
-  code: '42703',
-  detail: undefined,
-  hint: undefined,
-  position: '65',
-  internalPosition: undefined,
-  internalQuery: undefined,
-  where: undefined,
-  schema: undefined,
-  table: undefined,
-  column: undefined,
-  dataType: undefined,
-  constraint: undefined,
-  file: 'parse_target.c',
-  line: '1065',
-  routine: 'checkInsertTargets',
-  sourceError: undefined
-}
- POST /api/track 500 in 457ms
+ GET /api/websites/2cf7c87b-1260-4b28-8c38-6b559a6dcdce/clicks 200 in 291ms
+ ✓ Compiled /api/screenshot in 185ms (739 modules)
+ GET /api/screenshot?url=http%3A%2F%2F127.0.0.1%3A5501%2Fhtml%2F&w=1705 200 in 2203ms
+ ✓ Compiled /api/websites/[websiteId]/moves in 170ms (741 modules)
+Error: Route "/api/websites/[websiteId]/moves" used `params.websiteId`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at GET (app\api\websites\[websiteId]\moves\route.ts:14:10)
+  12 |
+  13 | export async function GET(request: NextRequest, context: any) {
+> 14 |   const { websiteId } = context.params;
+     |          ^
+  15 |
+  16 |   if (!websiteId) {
+  17 |     return NextResponse.json({ error: 'Website ID is required' }, { status: 400 });
+ GET /api/websites/2cf7c87b-1260-4b28-8c38-6b559a6dcdce/moves 200 in 2202ms

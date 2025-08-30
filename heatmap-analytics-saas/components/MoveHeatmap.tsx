@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import H from "heatmap.js";
-import { Button } from "./ui/button";
 
+// Type definitions
 interface HeatmapEvent {
   x: number;
   y: number;
@@ -17,57 +17,49 @@ interface HeatmapDataPoint {
   value: number;
 }
 
-interface HeatmapClientProps {
+interface HeatmapProps {
   websiteId: string;
   websiteUrl: string;
 }
 
-export default function HeatmapClient({
-  websiteId,
-  websiteUrl,
-}: HeatmapClientProps) {
-  const [heatmapType, setHeatmapType] = useState<"click" | "move">("click");
+export default function MoveHeatmap({ websiteId, websiteUrl }: HeatmapProps) {
   const [eventData, setEventData] = useState<HeatmapEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingMessage, setLoadingMessage] = useState(
-    "Loading heatmap data..."
-  );
+  const [loadingMessage, setLoadingMessage] = useState("Loading move data...");
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   const screenshotRef = useRef<HTMLImageElement>(null);
   const heatmapInstance = useRef<any>(null);
 
-  // Combined effect for fetching data and then the screenshot
+  // Effect for fetching data and then the screenshot
   useEffect(() => {
     const fetchAll = async () => {
       if (!websiteId) return;
 
       setIsLoading(true);
-      setScreenshotUrl(null); // Reset screenshot on new data fetch
+      setScreenshotUrl(null);
 
-      // 1. Fetch heatmap event data
-      setLoadingMessage(`Loading ${heatmapType} data...`);
-      const endpoint = heatmapType === "click" ? "clicks" : "moves";
+      // 1. Fetch move data
+      setLoadingMessage("Loading move data...");
       let data: HeatmapEvent[] = [];
       try {
-        const dataRes = await fetch(`/api/websites/${websiteId}/${endpoint}`);
-        if (!dataRes.ok) throw new Error(`Failed to fetch ${heatmapType} data`);
+        const dataRes = await fetch(`/api/websites/${websiteId}/moves`);
+        if (!dataRes.ok) throw new Error("Failed to fetch move data");
         data = await dataRes.json();
         setEventData(data);
       } catch (error) {
-        console.error(`Error fetching ${heatmapType} data:`, error);
+        console.error("Error fetching move data:", error);
         setEventData([]);
-        setIsLoading(false);
-        return; // Stop if data fetching fails
-      }
-
-      if (data.length === 0) {
-        console.log("No data found, skipping screenshot.");
         setIsLoading(false);
         return;
       }
 
-      // 2. Fetch screenshot using the viewport width from the first data point
+      if (data.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Fetch screenshot
       setLoadingMessage("Generating website preview...");
       try {
         const representativeWidth = data[0].viewport_width;
@@ -88,7 +80,7 @@ export default function HeatmapClient({
     };
 
     fetchAll();
-  }, [websiteId, websiteUrl, heatmapType]);
+  }, [websiteId, websiteUrl]);
 
   // Effect for rendering the heatmap
   useEffect(() => {
@@ -97,9 +89,8 @@ export default function HeatmapClient({
       !screenshotUrl ||
       !heatmapContainerRef.current ||
       !screenshotRef.current
-    ) {
+    )
       return;
-    }
 
     const img = screenshotRef.current;
 
@@ -115,16 +106,12 @@ export default function HeatmapClient({
       if (!heatmapInstance.current && heatmapContainerRef.current) {
         heatmapInstance.current = H.create({
           container: heatmapContainerRef.current,
+          radius: 15, // Smaller radius for move maps
+          maxOpacity: 0.5,
+          minOpacity: 0.1,
+          blur: 0.9,
         });
       }
-
-      // Configure heatmap based on type
-      heatmapInstance.current.configure({
-        radius: heatmapType === "click" ? 25 : 15,
-        maxOpacity: 0.6,
-        minOpacity: 0.1,
-        blur: 0.85,
-      });
 
       const dataPoints: HeatmapDataPoint[] = eventData.map((event) => {
         const scaleX = screenshotWidth / event.viewport_width;
@@ -136,61 +123,43 @@ export default function HeatmapClient({
       });
 
       heatmapInstance.current.setData({
-        max: heatmapType === "click" ? 5 : 10,
+        max: 10, // Higher max for denser move data
         data: dataPoints,
       });
     };
 
-    if (img.complete) {
-      setupHeatmap();
-    } else {
-      img.onload = setupHeatmap;
-    }
+    if (img.complete) setupHeatmap();
+    else img.onload = setupHeatmap;
 
     return () => {
       img.onload = null;
     };
-  }, [isLoading, screenshotUrl, eventData, heatmapType]);
+  }, [isLoading, screenshotUrl, eventData]);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-shrink-0 p-2 border-b bg-gray-50 flex items-center justify-center space-x-2">
-        <Button
-          variant={heatmapType === "click" ? "default" : "outline"}
-          onClick={() => setHeatmapType("click")}
-        >
-          Click Map
-        </Button>
-        <Button
-          variant={heatmapType === "move" ? "default" : "outline"}
-          onClick={() => setHeatmapType("move")}
-        >
-          Move Map
-        </Button>
-      </div>
-      <div className="flex-grow relative w-full h-full overflow-auto flex justify-center items-center bg-gray-100 p-4">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
-            <p className="text-lg text-gray-600">{loadingMessage}</p>
-          </div>
-        )}
-        {!isLoading && eventData.length === 0 && (
-          <div className="text-center p-4">
-            <p className="text-lg text-gray-600">
-              No data available for this period or heatmap type.
-            </p>
-          </div>
-        )}
-        {!isLoading && !screenshotUrl && eventData.length > 0 && (
-          <div className="text-red-500 text-center p-4">
-            <p>
-              Failed to load website preview. Please ensure the URL is
-              accessible.
-            </p>
-          </div>
-        )}
-        {screenshotUrl && (
-          <div className="relative inline-block" style={{ fontSize: 0 }}>
+    <div className="relative w-full h-full overflow-auto flex justify-center bg-gray-100 p-4">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
+          <p className="text-lg text-gray-600">{loadingMessage}</p>
+        </div>
+      )}
+      {!isLoading && eventData.length === 0 && (
+        <div className="text-center p-4">
+          <p className="text-lg text-gray-600">
+            No move data available for this period.
+          </p>
+        </div>
+      )}
+      {!isLoading && !screenshotUrl && eventData.length > 0 && (
+        <div className="text-red-500 text-center p-4">
+          <p>
+            Failed to load website preview. Please ensure the URL is accessible.
+          </p>
+        </div>
+      )}
+      {screenshotUrl && (
+        <div className="relative inline-block" style={{ fontSize: 0 }}>
+          <div className="relative overflow-auto">
             <img
               ref={screenshotRef}
               src={screenshotUrl}
@@ -202,8 +171,8 @@ export default function HeatmapClient({
               className="absolute top-0 left-0 z-10 pointer-events-none"
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

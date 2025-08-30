@@ -32,6 +32,7 @@ import {
   Code,
   Copy,
   Check,
+  MousePointerClick,
 } from "lucide-react";
 
 export interface WebsiteData {
@@ -287,11 +288,17 @@ export default function DashboardClient({
                       <TableCell className="text-center">
                         {site.click_count}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right flex items-center justify-end space-x-2">
                         <Button asChild variant="outline" size="sm">
-                          <Link href={`/dashboard/websites/${site.id}`}>
+                          <Link href={`/dashboard/websites/${site.id}/clicks`}>
                             <Eye className="w-4 h-4 mr-2" />
-                            Isı Haritasını Görüntüle
+                            Click Map
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/dashboard/websites/${site.id}/moves`}>
+                            <MousePointerClick className="w-4 h-4 mr-2" />
+                            Move Map
                           </Link>
                         </Button>
                         <TrackerScriptDialog site={site} />
