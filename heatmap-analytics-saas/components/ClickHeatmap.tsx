@@ -137,7 +137,7 @@ export default function ClickHeatmap({ websiteId, websiteUrl }: HeatmapProps) {
   }, [isLoading, screenshotUrl, eventData]);
 
   return (
-    <div className="relative w-full h-full overflow-auto flex justify-center bg-gray-100 p-4">
+    <>
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
           <p className="text-lg text-gray-600">{loadingMessage}</p>
@@ -163,7 +163,7 @@ export default function ClickHeatmap({ websiteId, websiteUrl }: HeatmapProps) {
             ref={screenshotRef}
             src={screenshotUrl}
             alt="Website Screenshot"
-            className="absolute w-fit h-fit object-fill"
+            className="absolute w-fit h-fit object-contain"
           />
           <div
             ref={heatmapContainerRef}
@@ -171,6 +171,6 @@ export default function ClickHeatmap({ websiteId, websiteUrl }: HeatmapProps) {
           />
         </div>
       )}
-    </div>
+    </>
   );
 }

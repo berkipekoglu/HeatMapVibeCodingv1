@@ -3,6 +3,7 @@ import { getToken } from '@/lib/auth';
 import { sql } from '@vercel/postgres';
 import { redirect } from 'next/navigation';
 import ClickHeatmap from '@/components/ClickHeatmap';
+import HeatmapLayout from '@/components/HeatmapLayout';
 
 async function getWebsiteData(websiteId: string) {
     const token = await getToken();
@@ -24,8 +25,8 @@ export default async function ClickHeatmapPage({ params }: { params: { websiteId
     }
 
     return (
-        <div className="w-full h-screen">
+        <HeatmapLayout websiteId={website.id} websiteName={website.name} websiteUrl={website.url}>
             <ClickHeatmap websiteId={website.id} websiteUrl={website.url} />
-        </div>
+        </HeatmapLayout>
     );
 }

@@ -137,7 +137,7 @@ export default function MoveHeatmap({ websiteId, websiteUrl }: HeatmapProps) {
   }, [isLoading, screenshotUrl, eventData]);
 
   return (
-    <div className="relative w-full h-full overflow-auto flex justify-center bg-gray-100 p-4">
+    <>
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
           <p className="text-lg text-gray-600">{loadingMessage}</p>
@@ -159,20 +159,18 @@ export default function MoveHeatmap({ websiteId, websiteUrl }: HeatmapProps) {
       )}
       {screenshotUrl && (
         <div className="relative inline-block" style={{ fontSize: 0 }}>
-          <div className="relative overflow-auto">
-            <img
-              ref={screenshotRef}
-              src={screenshotUrl}
-              alt="Website Screenshot"
-              className="absolute w-fit h-fit object-contain"
-            />
-            <div
-              ref={heatmapContainerRef}
-              className="absolute top-0 left-0 z-10 pointer-events-none"
-            />
-          </div>
+          <img
+            ref={screenshotRef}
+            src={screenshotUrl}
+            alt="Website Screenshot"
+            className="absolute w-fit h-fit object-contain"
+          />
+          <div
+            ref={heatmapContainerRef}
+            className="absolute top-0 left-0 z-10 pointer-events-none"
+          />
         </div>
       )}
-    </div>
+    </>
   );
 }
