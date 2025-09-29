@@ -33,6 +33,7 @@ import {
   Copy,
   Check,
   MousePointerClick,
+  RefreshCw,
 } from "lucide-react";
 
 export interface WebsiteData {
@@ -52,7 +53,7 @@ interface DashboardClientProps {
 // Helper component for the tracker script modal to manage its own state
 function TrackerScriptDialog({ site }: { site: WebsiteData }) {
   const [hasCopied, setHasCopied] = useState(false);
-  const scriptText = `<script async defer data-website-id="${site.id}" src="http://localhost:3000/tracker.js"></script>`;
+  const scriptText = `<script async defer data-website-id="${site.id}" src="${process.env.NEXT_PUBLIC_APP_URL}/tracker.js"></script>`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(scriptText).then(() => {
@@ -64,7 +65,7 @@ function TrackerScriptDialog({ site }: { site: WebsiteData }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="ml-2">
+        <Button variant="outline" size="icon" title="Get Tracker Code">
           <Code className="h-4 w-4" />
           <span className="sr-only">Get Tracker Code</span>
         </Button>
@@ -118,11 +119,26 @@ export default function DashboardClient({
   const [error, setError] = useState("");
   const [formState, setFormState] = useState({ name: "", url: "" });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
   const router = useRouter();
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
+  };
+
+  const handleRefreshScreenshot = async (site: WebsiteData) => {
+    setRefreshing(site.id);
+    try {
+      await fetch("/api/screenshot/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ websiteId: site.id, websiteUrl: site.url }),
+      });
+    } catch (err) {
+      console.error("Failed to refresh screenshot", err);
+    }
+    setTimeout(() => setRefreshing(null), 2500);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -302,6 +318,15 @@ export default function DashboardClient({
                           </Link>
                         </Button>
                         <TrackerScriptDialog site={site} />
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          title="Refresh Screenshot"
+                          onClick={() => handleRefreshScreenshot(site)}
+                          disabled={refreshing === site.id}
+                        >
+                          <RefreshCw className={`h-4 w-4 ${refreshing === site.id ? 'animate-spin' : ''}`} />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

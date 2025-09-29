@@ -1,12 +1,28 @@
- GET /dashboard/websites/2cf7c87b-1260-4b28-8c38-6b559a6dcdce/clicks 500 in 835ms
- ⨯ ReferenceError: website is not defined
-    at ClickHeatmapPage (app\dashboard\websites\[websiteId]\clicks\page.tsx:7:56)
-   5 |
-   6 |     return (
->  7 |         <ClickHeatmap websiteId={websiteId} websiteUrl={website.url} />
-     |                                                        ^
-   8 |     );
-   9 | }
-  10 | {
-  digest: '1979871095'
+Database reset failed: error: relation "sessions" already exists
+    at async GET (app\api\reset-db\route.ts:23:9)
+  21 |
+  22 |     for (const statement of statements) {
+> 23 |         await sql.query(statement);
+     |         ^
+  24 |     }
+  25 |
+  26 |     return NextResponse.json({ success: true, message: 'Database reset and re-initialized successfully from schema.sql.' }, { status: 200 }); {
+  length: 102,
+  severity: 'ERROR',
+  code: '42P07',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'heap.c',
+  line: '1160',
+  routine: 'heap_create_with_catalog'
 }
+ GET /api/reset-db 500 in 3740ms

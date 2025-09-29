@@ -1,8 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import jwt from 'jsonwebtoken';
-import { cookies } from 'next/headers';
+import { getToken } from '../../../../../lib/auth';
 
 interface MoveEventFromDB {
     points: { x: number, y: number }[];
@@ -10,48 +9,47 @@ interface MoveEventFromDB {
     viewport_height: number;
 }
 
-export async function GET(request: NextRequest, context: any) {
-  const { websiteId } = await context.params;
-
-  if (!websiteId) {
-    return NextResponse.json({ error: 'Website ID is required' }, { status: 400 });
+export async function GET(request: NextRequest, { params }: { params: { websiteId: string } }) {
+  const token = await getToken(request); 
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { websiteId } = params;
+  const { searchParams } = new URL(request.url);
+  const pageUrl = searchParams.get('url');
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+
   try {
-    // 1. Authenticate user from JWT Cookie
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
-    }
-
-    let userId;
-    try {
-      userId = (jwt.verify(token, process.env.JWT_SECRET!) as any).userId;
-    } catch (error) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
-    }
-
-    // 2. Verify that the website belongs to this user
-    const { rows: websiteRows } = await sql`
-      SELECT id FROM websites WHERE id = ${websiteId} AND user_id = ${userId};
+    const ownerCheck = await sql`
+      SELECT id FROM websites WHERE id = ${websiteId} AND user_id = ${token.userId};
     `;
 
-    if (websiteRows.length === 0) {
-      return NextResponse.json({ error: 'Forbidden: You do not own this website or it does not exist' }, { status: 403 });
+    if (ownerCheck.rowCount === 0) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 3. Fetch mouse movement data
-    const { rows: moveEvents } = await sql<MoveEventFromDB>`
-      SELECT points, viewport_width, viewport_height FROM mousemove_events WHERE website_id = ${websiteId};
+    let query = `
+      SELECT points, viewport_width, viewport_height 
+      FROM mousemove_events 
+      WHERE website_id = '${websiteId}'
     `;
 
-    // 4. Process and flatten the data for the heatmap library
-    const flattenedPoints = moveEvents.flatMap(event => {
-        // The 'points' column is a JSONB array of objects [{x, y}, {x, y}]
-        // We need to return each point as a separate object in the final array.
-        return event.points.map(point => ({
+    if (pageUrl) {
+      query += ` AND url = '${pageUrl}'`;
+    }
+    if (startDate) {
+      query += ` AND timestamp >= '${startDate}'`;
+    }
+    if (endDate) {
+      query += ` AND timestamp <= '${endDate}'`;
+    }
+
+    const { rows: moveEvents } = await sql.query(query);
+
+    const flattenedPoints = moveEvents.flatMap((event: any) => {
+        return event.points.map((point: any) => ({
             x: point.x,
             y: point.y,
             viewport_width: event.viewport_width,

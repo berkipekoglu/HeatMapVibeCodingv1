@@ -3,12 +3,25 @@
 
   const currentScript = document.currentScript;
   const websiteId = currentScript ? currentScript.dataset.websiteId : null;
-  const API_ENDPOINT = "http://localhost:3000/api/track";
+  const API_ENDPOINT = "http://localhost:3000/api/track"; // Bu URL production'da değiştirilmeli
 
   if (!websiteId) {
     console.error("Heatmap Tracker: data-website-id attribute is missing.");
     return;
   }
+
+  // --- Session Management ---
+  function getSessionId() {
+    let sessionId = sessionStorage.getItem("heatmap_session_id");
+    if (!sessionId) {
+      // Basit bir UUID benzeri ID oluştur
+      sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+      sessionStorage.setItem("heatmap_session_id", sessionId);
+    }
+    return sessionId;
+  }
+
+  const sessionId = getSessionId();
 
   // --- Buffering and Throttling for Mouse Movements ---
   let moveBuffer = [];
@@ -77,7 +90,6 @@
         websiteId: websiteId,
       },
     };
-    console.log("Click captured:", clickData);
     sendData(clickData);
   }
 
@@ -90,6 +102,10 @@
     if (data.type !== "mousemove" && moveBuffer.length > 0) {
       sendMoveData();
     }
+
+    // Add sessionId and userAgent to every payload before sending
+    data.payload.sessionId = sessionId;
+    data.payload.userAgent = navigator.userAgent;
 
     fetch(API_ENDPOINT, {
       method: "POST",
@@ -106,5 +122,5 @@
   // Send any remaining data when the user leaves the page
   window.addEventListener("beforeunload", sendMoveData);
 
-  console.log("Heatmap Tracker is active for website:", websiteId);
+  console.log("Heatmap Tracker is active for website:", websiteId, "Session:", sessionId);
 })();

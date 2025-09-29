@@ -1,29 +1,51 @@
 import MoveHeatmap from '@/components/MoveHeatmap';
-import { getToken } from '@/lib/auth';
-import { sql } from '@vercel/postgres';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-async function getWebsiteData(websiteId: string) {
-    const token = await getToken();
+// Helper function to create a fetch instance with the auth cookie
+async function getAuthenticatedFetch() {
+    const cookieStore = cookies();
+    const token = cookieStore.get('token')?.value;
+
     if (!token) {
         redirect('/login');
     }
 
-    const { rows } = await sql`
-        SELECT id, name, url FROM websites WHERE id = ${websiteId} AND user_id = ${token.userId};
-    `;
-    return rows[0];
+    return (url: string, options: RequestInit = {}) => {
+        const headers = new Headers(options.headers);
+        headers.set('Cookie', `token=${token}`);
+        return fetch(url, { ...options, headers });
+    };
+}
+
+async function getWebsiteDetails(websiteId: string, authedFetch: any) {
+    const res = await authedFetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/websites/${websiteId}`);
+    if (!res.ok) return null;
+    return res.json();
+}
+
+async function getWebsitePages(websiteId: string, authedFetch: any) {
+    const res = await authedFetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/websites/${websiteId}/pages`);
+    if (!res.ok) return [];
+    return res.json();
 }
 
 export default async function MoveHeatmapPage({ params }: { params: { websiteId: string } }) {
-    const { websiteId } = await params;
-    const website = await getWebsiteData(websiteId);
+    const { websiteId } = params;
+    const authedFetch = await getAuthenticatedFetch();
+
+    const website = await getWebsiteDetails(websiteId, authedFetch);
+    const pages = await getWebsitePages(websiteId, authedFetch);
 
     if (!website) {
         return <div>Website not found or you do not have permission to view it.</div>;
     }
 
     return (
-        <MoveHeatmap websiteId={website.id} websiteUrl={website.url} />
+        <MoveHeatmap 
+            websiteId={website.id} 
+            websiteUrl={website.url} 
+            initialPages={pages} 
+        />
     );
 }

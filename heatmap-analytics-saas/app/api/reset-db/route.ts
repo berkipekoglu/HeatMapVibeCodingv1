@@ -11,8 +11,10 @@ export async function GET() {
     const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
 
     // Drop tables before creating them to ensure a clean state
+    // The order matters due to foreign key constraints, or use CASCADE.
     await sql.query(`DROP TABLE IF EXISTS mousemove_events CASCADE;`);
     await sql.query(`DROP TABLE IF EXISTS click_events CASCADE;`);
+    await sql.query(`DROP TABLE IF EXISTS sessions CASCADE;`); // ADDED THIS LINE
     await sql.query(`DROP TABLE IF EXISTS websites CASCADE;`);
     await sql.query(`DROP TABLE IF EXISTS users CASCADE;`);
 

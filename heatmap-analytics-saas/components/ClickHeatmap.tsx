@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import H from "heatmap.js";
+import { DateRange } from "react-day-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 // Type definitions
 interface HeatmapEvent {
@@ -11,166 +13,171 @@ interface HeatmapEvent {
   viewport_height: number;
 }
 
-interface HeatmapDataPoint {
-  x: number;
-  y: number;
-  value: number;
-}
-
 interface HeatmapProps {
   websiteId: string;
   websiteUrl: string;
+  initialPages: string[];
 }
 
-export default function ClickHeatmap({ websiteId, websiteUrl }: HeatmapProps) {
+export default function ClickHeatmap({ websiteId, websiteUrl, initialPages }: HeatmapProps) {
   const [eventData, setEventData] = useState<HeatmapEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingMessage, setLoadingMessage] = useState("Loading click data...");
-  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState("Loading click data...");
+  const [screenshotUrl, setScreenshotUrl] = useState<string>("");
+  const [pages, setPages] = useState<string[]>(initialPages);
+  const [selectedPage, setSelectedPage] = useState<string>(websiteUrl);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   const screenshotRef = useRef<HTMLImageElement>(null);
   const heatmapInstance = useRef<any>(null);
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Effect for fetching data and then the screenshot
   useEffect(() => {
-    const fetchAll = async () => {
-      if (!websiteId) return;
+    const fetchDataForPage = async () => {
+      if (!websiteId || !selectedPage) return;
 
       setIsLoading(true);
-      setScreenshotUrl(null);
+      setStatusMessage("Loading click data for selected page...");
+      setScreenshotUrl("");
+      if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
 
-      // 1. Fetch click data
-      setLoadingMessage("Loading click data...");
-      let data: HeatmapEvent[] = [];
       try {
-        const dataRes = await fetch(`/api/websites/${websiteId}/clicks`);
+        let apiUrl = `/api/websites/${websiteId}/clicks?url=${encodeURIComponent(selectedPage)}`;
+        if (dateRange?.from) {
+          apiUrl += `&startDate=${dateRange.from.toISOString()}`;
+        }
+        if (dateRange?.to) {
+          apiUrl += `&endDate=${dateRange.to.toISOString()}`;
+        }
+
+        const dataRes = await fetch(apiUrl);
         if (!dataRes.ok) throw new Error("Failed to fetch click data");
-        data = await dataRes.json();
+        const data = await dataRes.json();
         setEventData(data);
+
+        if (data.length > 0) {
+          setStatusMessage("Loading website preview...");
+          const representativeWidth = data[0].viewport_width;
+          const initialUrl = `/api/screenshot?url=${encodeURIComponent(
+            selectedPage
+          )}&websiteId=${websiteId}&w=${representativeWidth}&t=${Date.now()}`;
+          setScreenshotUrl(initialUrl);
+        } else {
+          setStatusMessage("No click data available for this selection.");
+          setIsLoading(false);
+        }
       } catch (error) {
-        console.error("Error fetching click data:", error);
+        console.error("Error fetching data:", error);
         setEventData([]);
+        setStatusMessage("Failed to load data for this selection.");
         setIsLoading(false);
-        return;
       }
-
-      if (data.length === 0) {
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. Fetch screenshot
-      setLoadingMessage("Generating website preview...");
-      try {
-        const representativeWidth = data[0].viewport_width;
-        const screenshotRes = await fetch(
-          `/api/screenshot?url=${encodeURIComponent(
-            websiteUrl
-          )}&w=${representativeWidth}`
-        );
-        if (!screenshotRes.ok) throw new Error("Failed to fetch screenshot");
-        const base64Image = await screenshotRes.text();
-        setScreenshotUrl(`data:image/jpeg;base64,${base64Image}`);
-      } catch (error) {
-        console.error("Error fetching screenshot:", error);
-        setScreenshotUrl(null);
-      }
-
-      setIsLoading(false);
     };
 
-    fetchAll();
-  }, [websiteId, websiteUrl]);
+    fetchDataForPage();
 
-  // Effect for rendering the heatmap
-  useEffect(() => {
-    if (
-      isLoading ||
-      !screenshotUrl ||
-      !heatmapContainerRef.current ||
-      !screenshotRef.current
-    )
-      return;
+    return () => {
+      if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+    };
+  }, [websiteId, selectedPage, dateRange]);
 
+  const handleImageLoad = () => {
     const img = screenshotRef.current;
+    if (!img) return;
 
+    if (img.src.includes("placeholder.svg")) {
+      setStatusMessage("Generating website preview... (this may take a moment)");
+      pollingTimeoutRef.current = setTimeout(() => {
+        const newUrl = `${screenshotUrl.split('&t=')[0]}&t=${Date.now()}`;
+        setScreenshotUrl(newUrl);
+      }, 3000);
+    } else {
+      setIsLoading(false);
+      setStatusMessage("");
+      if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoading || !screenshotUrl || !eventData.length || !heatmapContainerRef.current || !screenshotRef.current) {
+      return;
+    }
+    const img = screenshotRef.current;
+    if (img.src.includes("placeholder.svg")) return;
     const setupHeatmap = () => {
       const screenshotWidth = img.naturalWidth;
       if (screenshotWidth === 0) return;
-
       if (heatmapContainerRef.current) {
         heatmapContainerRef.current.style.width = `${screenshotWidth}px`;
         heatmapContainerRef.current.style.height = `${img.naturalHeight}px`;
       }
-
-      if (!heatmapInstance.current && heatmapContainerRef.current) {
-        heatmapInstance.current = H.create({
-          container: heatmapContainerRef.current,
-          radius: 25,
-          maxOpacity: 0.6,
-          minOpacity: 0.1,
-          blur: 0.85,
-        });
+      if (!heatmapInstance.current) {
+        heatmapInstance.current = H.create({ container: heatmapContainerRef.current, radius: 25, maxOpacity: 0.6, minOpacity: 0.1, blur: .85 });
       }
-
-      const dataPoints: HeatmapDataPoint[] = eventData.map((event) => {
-        const scaleX = screenshotWidth / event.viewport_width;
-        return {
-          x: Math.round(event.x * scaleX),
-          y: event.y,
-          value: 1,
-        };
-      });
-
-      heatmapInstance.current.setData({
-        max: 5,
-        data: dataPoints,
-      });
+      const dataPoints = eventData.map((event) => ({
+        x: Math.round(event.x * (screenshotWidth / event.viewport_width)),
+        y: event.y,
+        value: 1,
+      }));
+      heatmapInstance.current.setData({ max: 5, data: dataPoints });
     };
-
     if (img.complete) setupHeatmap();
     else img.onload = setupHeatmap;
-
-    return () => {
-      img.onload = null;
-    };
   }, [isLoading, screenshotUrl, eventData]);
 
   return (
-    <>
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
-          <p className="text-lg text-gray-600">{loadingMessage}</p>
+    <div className="p-4 space-y-4">
+      <div className="flex flex-wrap items-center gap-4">
+        <div>
+          <label htmlFor="page-select" className="mr-2 font-semibold text-sm">Page:</label>
+          <select 
+            id="page-select"
+            value={selectedPage}
+            onChange={(e) => setSelectedPage(e.target.value)}
+            className="p-2 border rounded-md bg-white shadow-sm text-sm"
+          >
+            {pages.map(page => (
+              <option key={page} value={page}>{new URL(page).pathname}</option>
+            ))}
+          </select>
         </div>
-      )}
-      {!isLoading && eventData.length === 0 && (
-        <div className="text-center p-4">
-          <p className="text-lg text-gray-600">
-            No click data available for this period.
-          </p>
+        <div>
+          <label className="mr-2 font-semibold text-sm">Date Range:</label>
+          <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         </div>
-      )}
-      {!isLoading && !screenshotUrl && eventData.length > 0 && (
-        <div className="text-red-500 text-center p-4">
-          <p>
-            Failed to load website preview. Please ensure the URL is accessible.
-          </p>
-        </div>
-      )}
-      {screenshotUrl && (
-        <div className="relative inline-block shadow" style={{ fontSize: 0 }}>
-          <img
-            ref={screenshotRef}
-            src={screenshotUrl}
-            alt="Website Screenshot"
-            className="absolute w-fit h-fit object-contain"
-          />
-          <div
-            ref={heatmapContainerRef}
-            className="absolute top-0 left-0 z-10 pointer-events-none"
-          />
-        </div>
-      )}
-    </>
+      </div>
+
+      <div className="relative w-full flex justify-center items-start pt-4">
+        {(isLoading || statusMessage) && !(!isLoading && eventData.length === 0) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
+            <p className="text-lg text-gray-600">{statusMessage}</p>
+          </div>
+        )}
+        
+        {!isLoading && eventData.length === 0 && (
+          <div className="text-center p-4">
+            <p className="text-lg text-gray-600">{statusMessage}</p>
+          </div>
+        )}
+
+        {screenshotUrl && (
+          <div className="relative inline-block shadow-lg" style={{ fontSize: 0 }}>
+            <img
+              ref={screenshotRef}
+              src={screenshotUrl}
+              alt="Website Screenshot"
+              onLoad={handleImageLoad}
+              className="relative z-0"
+              style={{ visibility: isLoading ? 'hidden' : 'visible' }}
+            />
+            <div
+              ref={heatmapContainerRef}
+              className="absolute top-0 left-0 z-10 pointer-events-none"
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

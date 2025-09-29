@@ -107,3 +107,39 @@
 - Isı haritası görüntüleme ekranları için ortak bir düzen yapısı (`layout.tsx` dosyası kullanılarak) uygulandı.
 - Isı haritası bileşenleri için veri getirme ve prop geçirme mekanizması yeniden düzenlendi (örneğin, `getWebsiteData` fonksiyonu tekrar `page.tsx` dosyalarına taşındı, `WebsiteContext` kaldırıldı).
 - Projeden artık kullanılmayan dosyalar (`HeatmapClient.tsx`, eski `page.tsx` dosyası, `HeatmapLayout.tsx`, `WebsiteContext.tsx`, `website.ts`) silindi.
+
+### Ekran Görüntüsü Mimarisi Yeniden Yapılandırması (Ölçeklenebilirlik)
+- Her istekte yeniden ekran görüntüsü alan senkron modelin, sunucu kaynaklarını verimsiz kullandığı ve ölçeklenemeyeceği tespit edildi.
+- Asenkron ve kuyruk tabanlı (queue-based) bir mimariye geçiş yapılmasına karar verildi.
+- Gerekli kütüphaneler projeye eklendi: `@vercel/blob` (depolama), `@upstash/redis` (önbellek), `@upstash/qstash` (mesaj kuyruğu).
+- Arka planda Playwright ile ekran görüntüsü alıp Vercel Blob'a kaydeden ve sonucunu Redis'te önbelleğe alan bir worker API'si (`/api/process-screenshot/route.ts`) oluşturuldu.
+- Mevcut `/api/screenshot/route.ts` API'si, görüntü oluşturmak yerine Redis önbelleğini kontrol edecek, önbellek boşsa QStash'e iş delege edecek ve istemciyi bir yer tutucu görsele yönlendirecek şekilde yeniden düzenlendi.
+- Görüntü oluşturulurken gösterilmek üzere bir yer tutucu SVG (`public/placeholder.svg`) dosyası oluşturuldu.
+- `ClickHeatmap.tsx` ve `MoveHeatmap.tsx` bileşenleri, bu yeni asenkron akışı yönetecek şekilde tamamen yeniden yazıldı. Bileşenler artık periyodik sorgulama (polling) mekanizması ile gerçek ekran görüntüsünün hazır olup olmadığını kontrol etmektedir.
+- Geliştirme ortamında QStash gibi harici servislerin `localhost`'a erişebilmesi için `ngrok` ile tünelleme yöntemi kuruldu ve `.env.local`'deki `NEXT_PUBLIC_APP_URL`'in `ngrok` adresi ile güncellenmesi sağlandı.
+- `@upstash/qstash` kütüphanesinin Next.js App Router ile uyumsuzluğundan kaynaklanan `TypeError: response.status is not a function` hatası giderildi. Çözüm olarak, `verifySignature` sarmalayıcısı yerine manuel imza doğrulama yöntemi uygulandı ve gerekli olan `QSTASH_CURRENT_SIGNING_KEY` ve `QSTASH_NEXT_SIGNING_KEY` ortam değişkenleri eklendi.
+
+### Analitik Filtreleme ve Gelişmiş Takip Özellikleri
+- **Ziyaretçi Oturum Takibi:**
+  - Ziyaretçi etkileşimlerini gruplamak amacıyla `sessions` tablosu oluşturuldu ve event tablolarına `session_id` eklendi.
+  - `tracker.js`, tarayıcının `sessionStorage`'ını kullanarak benzersiz bir oturum ID'si oluşturup her istekle birlikte gönderecek şekilde güncellendi.
+  - `/api/track` endpoint'i, gelen oturum ID'sini veritabanına kaydedecek şekilde yeniden düzenlendi.
+- **Gelişmiş Ziyaretçi Bilgileri (User Agent):**
+  - Ziyaretçinin tarayıcı, işletim sistemi ve cihaz bilgilerini saklamak için `sessions` tablosu genişletildi.
+  - `ua-parser-js` kütüphanesi projeye eklendi.
+  - `tracker.js`, `navigator.userAgent` bilgisini gönderecek şekilde güncellendi.
+  - `/api/track` endpoint'i, gelen `userAgent` bilgisini `ua-parser-js` ile ayrıştırıp veritabanına kaydedecek şekilde geliştirildi.
+- **Sayfa (Route) Bazlı Filtreleme:**
+  - Bir siteye ait tüm benzersiz sayfaları listeleyen yeni bir API endpoint'i (`/api/websites/[websiteId]/pages`) oluşturuldu.
+  - `/clicks` ve `/moves` API'leri, belirli bir sayfa URL'ine göre veri filtreleyebilecek şekilde güncellendi.
+  - Isı haritası sayfalarına, sitedeki tüm sayfaları listeleyen ve seçime göre ısı haritasını güncelleyen bir dropdown menü eklendi.
+- **Tarih Aralığına Göre Filtreleme:**
+  - `react-day-picker` ve `Popover` bileşenleri projeye eklendi.
+  - Bu bileşenler kullanılarak yeniden kullanılabilir bir `DateRangePicker` bileşeni oluşturuldu.
+  - Isı haritası sayfalarına `DateRangePicker` entegre edildi ve API'ler tarih aralığına göre filtreleme yapacak şekilde güncellendi.
+- **Ekran Görüntüsü Yönetimi:**
+  - Ekran görüntüsü önbelleğini temizleyip yeniden oluşturmayı tetikleyen bir `/api/screenshot/refresh` API endpoint'i oluşturuldu.
+  - Dashboard'daki web sitesi listesine, bu API'yi çağıran bir "Yenile" butonu eklendi.
+- **Proje ve Veritabanı Yönetimi:**
+  - Kök dizindeki `package.json` bağımlılıkları, `heatmap-analytics-saas` projesine taşınarak proje merkezileştirildi ve `npm install` sorunları giderildi.
+  - `/api/reset-db` betiğindeki, `sessions` tablosunun silinmemesinden kaynaklanan hata, eksik `DROP TABLE` komutu eklenerek düzeltildi.
