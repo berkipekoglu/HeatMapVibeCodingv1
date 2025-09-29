@@ -1,28 +1,17 @@
-Database reset failed: error: relation "sessions" already exists
-    at async GET (app\api\reset-db\route.ts:23:9)
-  21 |
-  22 |     for (const statement of statements) {
-> 23 |         await sql.query(statement);
-     |         ^
-  24 |     }
-  25 |
-  26 |     return NextResponse.json({ success: true, message: 'Database reset and re-initialized successfully from schema.sql.' }, { status: 200 }); {
-  length: 102,
-  severity: 'ERROR',
-  code: '42P07',
-  detail: undefined,
-  hint: undefined,
-  position: undefined,
-  internalPosition: undefined,
-  internalQuery: undefined,
-  where: undefined,
-  schema: undefined,
-  table: undefined,
-  column: undefined,
-  dataType: undefined,
-  constraint: undefined,
-  file: 'heap.c',
-  line: '1160',
-  routine: 'heap_create_with_catalog'
+[SCREENSHOT_API_ERROR] TypeError: fetch failed
+    at async GET (app\api\screenshot\route.ts:33:23)
+  31 |     // 1. Önbelleği kontrol et
+  32 |     const cacheKey = `screenshot:${websiteId}:${viewportWidth}`;
+> 33 |     const cachedUrl = await redis.get<string>(cacheKey);
+     |                       ^
+  34 |
+  35 |     if (cachedUrl) {
+  36 |       // 2. Önbellekte varsa: Önbellekteki resim URL'ine yönlendir {
+  [cause]: [Error: getaddrinfo ENOTFOUND simple-werewolf-32211.upstash.io] {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'simple-werewolf-32211.upstash.io'
+  }
 }
- GET /api/reset-db 500 in 3740ms
+ GET /api/screenshot?url=http%3A%2F%2F127.0.0.1%3A5501%2Fhtml%2F&websiteId=ff1b525d-e29e-4b9e-81b1-ea97b7a7404e&w=1849&t=1759181392072 307 in 13092ms

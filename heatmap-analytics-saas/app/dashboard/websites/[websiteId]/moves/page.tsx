@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 // Helper function to create a fetch instance with the auth cookie
 async function getAuthenticatedFetch() {
     const cookieStore = cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = (await cookieStore).get('token')?.value;
 
     if (!token) {
         redirect('/login');
@@ -18,7 +18,7 @@ async function getAuthenticatedFetch() {
     };
 }
 
-async function getWebsiteDetails(websiteId: string, authedFetch: any) {
+async function getWebsiteData(websiteId: string, authedFetch: any) {
     const res = await authedFetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/websites/${websiteId}`);
     if (!res.ok) return null;
     return res.json();
@@ -30,12 +30,22 @@ async function getWebsitePages(websiteId: string, authedFetch: any) {
     return res.json();
 }
 
-export default async function MoveHeatmapPage({ params }: { params: { websiteId: string } }) {
-    const { websiteId } = params;
+async function getWebsiteStats(websiteId: string, authedFetch: any) {
+    const res = await authedFetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/websites/${websiteId}/stats`);
+    if (!res.ok) return null;
+    return res.json();
+}
+
+export default async function MoveHeatmapPage({ params }: { params: Promise<{ websiteId: string }> }) {
+    const { websiteId } = await params;
     const authedFetch = await getAuthenticatedFetch();
 
-    const website = await getWebsiteDetails(websiteId, authedFetch);
-    const pages = await getWebsitePages(websiteId, authedFetch);
+    // Fetch all data in parallel
+    const [website, pages, stats] = await Promise.all([
+        getWebsiteData(websiteId, authedFetch),
+        getWebsitePages(websiteId, authedFetch),
+        getWebsiteStats(websiteId, authedFetch)
+    ]);
 
     if (!website) {
         return <div>Website not found or you do not have permission to view it.</div>;
@@ -46,6 +56,7 @@ export default async function MoveHeatmapPage({ params }: { params: { websiteId:
             websiteId={website.id} 
             websiteUrl={website.url} 
             initialPages={pages} 
+            stats={stats}
         />
     );
 }

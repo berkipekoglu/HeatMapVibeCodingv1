@@ -22,6 +22,7 @@
   }
 
   const sessionId = getSessionId();
+  const normalizedUrl = window.location.origin + window.location.pathname;
 
   // --- Buffering and Throttling for Mouse Movements ---
   let moveBuffer = [];
@@ -37,11 +38,13 @@
       return;
     }
 
+    const normalizedUrl = window.location.origin + window.location.pathname;
+
     const dataToSend = {
       type: "mousemove",
       payload: {
         points: moveBuffer,
-        url: window.location.href,
+        url: normalizedUrl,
         websiteId: websiteId,
         viewportWidth: document.documentElement.clientWidth,
         viewportHeight: window.innerHeight,
@@ -79,6 +82,7 @@
    * @param {MouseEvent} event
    */
   function captureClick(event) {
+    const normalizedUrl = window.location.origin + window.location.pathname;
     const clickData = {
       type: "click",
       payload: {
@@ -86,7 +90,7 @@
         y: event.pageY,
         viewportWidth: document.documentElement.clientWidth,
         viewportHeight: window.innerHeight,
-        url: window.location.href,
+        url: normalizedUrl,
         websiteId: websiteId,
       },
     };

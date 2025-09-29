@@ -13,13 +13,21 @@ interface HeatmapEvent {
   viewport_height: number;
 }
 
+interface StatsData {
+  clicksOverTime: any[];
+  browserStats: { browser: string; count: number }[];
+  osStats: { os: string; count: number }[];
+  deviceStats: { device: string; count: number }[];
+}
+
 interface HeatmapProps {
   websiteId: string;
   websiteUrl: string;
   initialPages: string[];
+  stats: StatsData | null;
 }
 
-export default function MoveHeatmap({ websiteId, websiteUrl, initialPages }: HeatmapProps) {
+export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats }: HeatmapProps) {
   const [eventData, setEventData] = useState<HeatmapEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState("Loading move data...");
@@ -27,6 +35,9 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages }: Hea
   const [pages, setPages] = useState<string[]>(initialPages);
   const [selectedPage, setSelectedPage] = useState<string>(websiteUrl);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [selectedDevice, setSelectedDevice] = useState<string>("all");
+  const [selectedBrowser, setSelectedBrowser] = useState<string>("all");
+  const [selectedOs, setSelectedOs] = useState<string>("all");
 
   const heatmapContainerRef = useRef<HTMLDivElement>(null);
   const screenshotRef = useRef<HTMLImageElement>(null);
@@ -38,20 +49,21 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages }: Hea
       if (!websiteId || !selectedPage) return;
 
       setIsLoading(true);
-      setStatusMessage("Loading move data for selected page...");
+      setStatusMessage("Loading move data for selected filters...");
       setScreenshotUrl("");
       if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
 
       try {
-        let apiUrl = `/api/websites/${websiteId}/moves?url=${encodeURIComponent(selectedPage)}`;
-        if (dateRange?.from) {
-          apiUrl += `&startDate=${dateRange.from.toISOString()}`;
-        }
-        if (dateRange?.to) {
-          apiUrl += `&endDate=${dateRange.to.toISOString()}`;
-        }
+        const params = new URLSearchParams({
+          url: selectedPage,
+          ...(dateRange?.from && { startDate: dateRange.from.toISOString() }),
+          ...(dateRange?.to && { endDate: dateRange.to.toISOString() }),
+          ...(selectedDevice !== 'all' && { device: selectedDevice }),
+          ...(selectedBrowser !== 'all' && { browser: selectedBrowser }),
+          ...(selectedOs !== 'all' && { os: selectedOs }),
+        });
 
-        const dataRes = await fetch(apiUrl);
+        const dataRes = await fetch(`/api/websites/${websiteId}/moves?${params.toString()}`);
         if (!dataRes.ok) throw new Error("Failed to fetch move data");
         const data = await dataRes.json();
         setEventData(data);
@@ -80,8 +92,9 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages }: Hea
     return () => {
       if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
     };
-  }, [websiteId, selectedPage, dateRange]);
+  }, [websiteId, selectedPage, dateRange, selectedDevice, selectedBrowser, selectedOs]);
 
+  // ... (handleImageLoad and heatmap rendering useEffect remain the same)
   const handleImageLoad = () => {
     const img = screenshotRef.current;
     if (!img) return;
@@ -128,28 +141,42 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages }: Hea
 
   return (
     <div className="p-4 space-y-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <div>
-          <label htmlFor="page-select" className="mr-2 font-semibold text-sm">Page:</label>
-          <select 
-            id="page-select"
-            value={selectedPage}
-            onChange={(e) => setSelectedPage(e.target.value)}
-            className="p-2 border rounded-md bg-white shadow-sm text-sm"
-          >
-            {pages.map(page => (
-              <option key={page} value={page}>{new URL(page).pathname}</option>
-            ))}
+      <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-card">
+        <div className="flex-1 min-w-[150px]">
+          <label htmlFor="page-select" className="text-sm font-medium text-muted-foreground">Page</label>
+          <select id="page-select" value={selectedPage} onChange={(e) => setSelectedPage(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
+            {pages.map(page => <option key={page} value={page}>{new URL(page).pathname}</option>)}
           </select>
         </div>
-        <div>
-          <label className="mr-2 font-semibold text-sm">Date Range:</label>
+        <div className="flex-1 min-w-[150px]">
+          <label className="text-sm font-medium text-muted-foreground">Device</label>
+          <select id="device-select" value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
+            <option value="all">All Devices</option>
+            {stats?.deviceStats.map(s => <option key={s.device} value={s.device}>{s.device}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 min-w-[150px]">
+          <label className="text-sm font-medium text-muted-foreground">Browser</label>
+          <select id="browser-select" value={selectedBrowser} onChange={(e) => setSelectedBrowser(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
+            <option value="all">All Browsers</option>
+            {stats?.browserStats.map(s => <option key={s.browser} value={s.browser}>{s.browser}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 min-w-[150px]">
+          <label className="text-sm font-medium text-muted-foreground">OS</label>
+          <select id="os-select" value={selectedOs} onChange={(e) => setSelectedOs(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
+            <option value="all">All OS</option>
+            {stats?.osStats.map(s => <option key={s.os} value={s.os}>{s.os}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 min-w-[300px]">
+          <label className="text-sm font-medium text-muted-foreground">Date Range</label>
           <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         </div>
       </div>
 
       <div className="relative w-full flex justify-center items-start pt-4">
-        {(isLoading || statusMessage) && !(!isLoading && eventData.length === 0) && (
+        {(isLoading || (statusMessage && statusMessage.includes('Generating'))) && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
             <p className="text-lg text-gray-600">{statusMessage}</p>
           </div>

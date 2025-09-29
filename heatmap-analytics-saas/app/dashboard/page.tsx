@@ -1,49 +1,54 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import DashboardClient, { WebsiteData } from "./DashboardClient";
+import DashboardClient, { WebsiteData, StatsData } from "./DashboardClient";
+
+async function getAuthenticatedFetch() {
+  const cookieStore = cookies();
+  const token = (await cookieStore).get("token")?.value;
+
+  if (!token) {
+    redirect("/login");
+  }
+
+  const headersList = headers();
+  const host = headersList.get("host") || "";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+
+  return (url: string, options: RequestInit = {}) => {
+    const requestHeaders = new Headers(options.headers);
+    requestHeaders.set('Cookie', `token=${token}`);
+    return fetch(`${protocol}://${host}${url}`, { ...options, headers: requestHeaders, cache: "no-store" });
+  };
+}
 
 export default async function DashboardPage() {
   let websites: WebsiteData[] = [];
+  let stats: StatsData | null = null;
 
   try {
-    const cookieStore = cookies(); // Get the cookie store
-    const token = (await cookieStore).get("token")?.value; // Retrieve the token
+    const authedFetch = await getAuthenticatedFetch();
+    
+    const websitesRes = await authedFetch("/api/websites");
+    if (websitesRes.status === 401) redirect("/login");
+    if (!websitesRes.ok) throw new Error(`Failed to fetch websites. Status: ${websitesRes.status}`);
+    websites = await websitesRes.json();
 
-    if (!token) {
-      // If token is not found, redirect to login
-      redirect("/login");
+    // If there are websites, fetch stats for the first one
+    if (websites.length > 0) {
+      const firstWebsiteId = websites[0].id;
+      const statsRes = await authedFetch(`/api/websites/${firstWebsiteId}/stats`);
+      if (statsRes.ok) {
+        stats = await statsRes.json();
+      }
     }
 
-    const headersList = headers();
-    const host = (await headersList).get("host") || "";
-    const protocol = host.startsWith("localhost") ? "http" : "https";
-    const res = await fetch(`${protocol}://${host}/api/websites`, {
-      headers: {
-        Cookie: `token=${token}`,
-      },
-      cache: "no-store",
-    });
-
-    if (res.status === 401) {
-      redirect("/login");
-    }
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch websites. Status: ${res.status}`);
-    }
-
-    websites = await res.json();
   } catch (error: any) {
-    // The `redirect` function throws a special error that we should not catch.
-    // We re-throw it to let Next.js handle the redirect.
     if (error.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
     console.error("Dashboard Page Error:", error);
-    // Render the page with an empty state in case of other errors.
   }
 
-  // Calculate metrics
   const totalWebsites = websites.length;
   const totalClicks = websites.reduce(
     (acc, site) => acc + (site.click_count || 0),
@@ -55,6 +60,7 @@ export default async function DashboardPage() {
       initialWebsites={websites}
       totalWebsites={totalWebsites}
       totalClicks={totalClicks}
+      initialStats={stats}
     />
   );
 }

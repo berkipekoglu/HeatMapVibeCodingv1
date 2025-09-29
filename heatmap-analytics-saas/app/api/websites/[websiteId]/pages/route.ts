@@ -2,13 +2,13 @@ import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { getToken } from '../../../../../lib/auth'; // Adjust path as needed
 
-export async function GET(request: Request, { params }: { params: { websiteId: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ websiteId: string }> }) {
   const token = await getToken(request);
   if (!token) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { websiteId } = params;
+  const { websiteId } = await params;
 
   try {
     // First, verify the user owns this website to prevent unauthorized access
@@ -30,9 +30,17 @@ export async function GET(request: Request, { params }: { params: { websiteId: s
       SELECT * FROM all_pages ORDER BY url;
     `;
 
-    const pages = rows.map(row => row.url);
+    // Normalize and deduplicate URLs
+    const normalizedPages = new Set(rows.map(row => {
+      try {
+        const url = new URL(row.url);
+        return url.origin + url.pathname;
+      } catch (e) {
+        return row.url; // Return original if it's not a valid URL
+      }
+    }));
 
-    return NextResponse.json(pages);
+    return NextResponse.json(Array.from(normalizedPages));
 
   } catch (error) {
     console.error('Error fetching website pages:', error);
