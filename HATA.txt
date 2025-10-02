@@ -1,16 +1,7 @@
---- [PROCESS_SCREENSHOT_WORKER] ---
-[WORKER] Received job for URL: http://127.0.0.1:5501/html/index.html
-[WORKER] Launching Playwright...
-[WORKER] Playwright screenshot successful.
-[WORKER] Uploading to Vercel Blob...
-[PROCESS_SCREENSHOT_ERROR] Error: Vercel Blob: This blob already exists, use `allowOverwrite: true` if you want to overwrite it. Or `addRandomSuffix: true` to generate a unique filename. Read more about this error in our documentation: https://vercel.link/blob-allow-overwrite
-    at async handler (app\api\process-screenshot\route.ts:45:18)
-    at async POST (app\api\process-screenshot\route.ts:88:12)
-  43 |
-  44 |     console.log('[WORKER] Uploading to Vercel Blob...');
-> 45 |     const blob = await put(`screenshots/${websiteId}-${viewportWidth}.jpeg`, screenshotBuffer, {
-     |                  ^
-  46 |       access: 'public',
-  47 |       contentType: 'image/jpeg',
-  48 |     });
- POST /api/process-screenshot 500 in 3305ms
+Data passed to DeviceChart: 
+[
+    {
+        "device": "desktop",
+        "count": "2"
+    }
+]

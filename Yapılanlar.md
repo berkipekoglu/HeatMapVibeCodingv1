@@ -140,6 +140,28 @@
 - **Ekran Görüntüsü Yönetimi:**
   - Ekran görüntüsü önbelleğini temizleyip yeniden oluşturmayı tetikleyen bir `/api/screenshot/refresh` API endpoint'i oluşturuldu.
   - Dashboard'daki web sitesi listesine, bu API'yi çağıran bir "Yenile" butonu eklendi.
-- **Proje ve Veritabanı Yönetimi:**
+### Site Sağlığı ve Performans İzleme (Monitoring)
+- **Veritabanı Genişletmesi:**
+  - Core Web Vitals metriklerini saklamak için `performance_metrics` tablosu oluşturuldu.
+  - JavaScript hatalarını loglamak için `js_errors` tablosu oluşturuldu.
+- **Veri Toplama (`tracker.js`):**
+  - `PerformanceObserver` API'si kullanılarak LCP, FID, CLS gibi performans metriklerinin yakalanması sağlandı.
+  - `window.onerror` olayı ile istemci taraflı JavaScript hatalarının yakalanması sağlandı.
+- **API Güncellemesi (`/api/track`):**
+  - `/api/track` endpoint'i, `performance` ve `js_error` adlı yeni olay türlerini kabul edecek ve ilgili tablolara kaydedecek şekilde genişletildi.
+- **Dashboard Entegrasyonu:**
+  - Ortalama performans metriklerini ve son JS hatalarını getiren yeni API endpoint'leri (`/performance`, `/errors`) oluşturuldu.
+  - Ana dashboard'a, bu verileri gösteren kartlar ve bir tablo içeren yeni bir "Site Sağlığı" bölümü eklendi.
+
+### Proje Yönetimi ve Hata Ayıklama
+- **Bağımlılık Yönetimi:**
   - Kök dizindeki `package.json` bağımlılıkları, `heatmap-analytics-saas` projesine taşınarak proje merkezileştirildi ve `npm install` sorunları giderildi.
+- **Veritabanı Yönetimi:**
   - `/api/reset-db` betiğindeki, `sessions` tablosunun silinmemesinden kaynaklanan hata, eksik `DROP TABLE` komutu eklenerek düzeltildi.
+- **Hata Ayıklama ve Kararlılık:**
+  - `ua-parser-js` kütüphanesinin `import` uyumsuzluğundan kaynaklanan sunucu tarafı hataları, `require` kullanımıyla düzeltildi.
+  - Veritabanına standart dışı ID kaydetmeye çalışmaktan kaynaklanan `invalid input syntax for type uuid` hatası, `tracker.js`'ten gelen ID'yi ayrı bir sütunda saklayıp veritabanının kendi UUID'sini oluşturması sağlanarak çözüldü.
+  - Next.js'in yeni sürümlerinde `params` ve `cookies` objelerinin `await` ile beklenmemesinden kaynaklanan sunucu tarafı render hataları giderildi.
+  - Vercel Blob'a aynı isimle dosya yüklerken oluşan "blob already exists" hatası, `allowOverwrite: true` seçeneği eklenerek çözüldü.
+  - `DateRangePicker` bileşeninin stillerinin bozuk görünmesi sorunu, eksik olan `react-day-picker` CSS dosyasının `globals.css`'e import edilmesiyle düzeltildi.
+  - Dashboard'da `Device Breakdown` grafiğinin görünmemesi sorunu teşhis edildi. Sorunun, veritabanından gelen `count` değerinin `string` formatında olması ve `recharts`'ın `number` beklemesi olduğu anlaşıldı. `/api/stats` endpoint'i, veriyi ön yüze göndermeden önce `parseInt` ile sayıya çevirecek şekilde güncellenerek sorun çözüldü.

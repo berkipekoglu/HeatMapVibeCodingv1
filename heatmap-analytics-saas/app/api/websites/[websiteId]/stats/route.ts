@@ -23,47 +23,49 @@ export async function GET(
     }
 
     // Run all stats queries in parallel
-    const [clicksOverTime, browserStats, osStats, deviceStats] =
-      await Promise.all([
-        // Clicks in the last 14 days, grouped by day
-        sql`
+    const [clicksOverTime, browserStats, osStats, deviceStats] = await Promise.all([
+      // Clicks in the last 14 days, grouped by day
+      sql`
         SELECT DATE(timestamp) as date, COUNT(*) as clicks
         FROM click_events
         WHERE website_id = ${websiteId} AND timestamp >= NOW() - INTERVAL '14 days'
         GROUP BY DATE(timestamp)
         ORDER BY date ASC;
       `,
-        // Stats by browser
-        sql`
+      // Stats by browser
+      sql`
         SELECT browser, COUNT(*) as count
         FROM sessions
         WHERE website_id = ${websiteId} AND browser IS NOT NULL
         GROUP BY browser
         ORDER BY count DESC;
       `,
-        // Stats by OS
-        sql`
+      // Stats by OS
+      sql`
         SELECT os, COUNT(*) as count
         FROM sessions
         WHERE website_id = ${websiteId} AND os IS NOT NULL
         GROUP BY os
         ORDER BY count DESC;
       `,
-        // Stats by device type
-        sql`
+      // Stats by device type
+      sql`
         SELECT device, COUNT(*) as count
         FROM sessions
         WHERE website_id = ${websiteId} AND device IS NOT NULL
         GROUP BY device
         ORDER BY count DESC;
-      `,
-      ]);
+      `
+    ]);
+
+    // Parse string counts to numbers for recharts
+    const parseCounts = (row: any) => ({ ...row, count: parseInt(row.count, 10) });
 
     return NextResponse.json({
-      clicksOverTime: clicksOverTime.rows,
-      browserStats: browserStats.rows,
-      osStats: osStats.rows,
-      deviceStats: deviceStats.rows,
+      clicksOverTime: clicksOverTime.rows.map(row => ({ ...row, clicks: parseInt(row.clicks, 10) })),
+      browserStats: browserStats.rows.map(parseCounts),
+      osStats: osStats.rows.map(parseCounts),
+      deviceStats: deviceStats.rows.map(parseCounts),
     });
   } catch (error) {
     console.error("Stats API Error:", error);

@@ -96,25 +96,14 @@ const ClicksChart = ({ data }: { data: StatsData["clicksOverTime"] }) => (
   </ResponsiveContainer>
 );
 
-const DeviceChart = ({ data }: { data: StatsData["deviceStats"] }) => {
-  const COLORS = { desktop: "#8884d8", mobile: "#82ca9d" };
+const DeviceChart = ({ data }: { data: StatsData['deviceStats'] }) => {
+  const COLORS = { desktop: '#8884d8', mobile: '#82ca9d' };
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <PieChart>
-        <Pie
-          data={data}
-          dataKey="count"
-          nameKey="device"
-          cx="50%"
-          cy="50%"
-          outerRadius={80}
-          label
-        >
+      <PieChart data={data}>
+        <Pie dataKey="count" nameKey="device" cx="50%" cy="50%" outerRadius={80} label>
           {data.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={COLORS[entry.device as keyof typeof COLORS] || "#d3d3d3"}
-            />
+            <Cell key={`cell-${index}`} fill={COLORS[entry.device as keyof typeof COLORS] || '#d3d3d3'} />
           ))}
         </Pie>
         <Tooltip wrapperClassName="!bg-background !border-border" />
