@@ -1,17 +1,16 @@
-[SCREENSHOT_API_ERROR] TypeError: fetch failed
-    at async GET (app\api\screenshot\route.ts:33:23)
-  31 |     // 1. Önbelleği kontrol et
-  32 |     const cacheKey = `screenshot:${websiteId}:${viewportWidth}`;
-> 33 |     const cachedUrl = await redis.get<string>(cacheKey);
-     |                       ^
-  34 |
-  35 |     if (cachedUrl) {
-  36 |       // 2. Önbellekte varsa: Önbellekteki resim URL'ine yönlendir {
-  [cause]: [Error: getaddrinfo ENOTFOUND simple-werewolf-32211.upstash.io] {
-    errno: -3008,
-    code: 'ENOTFOUND',
-    syscall: 'getaddrinfo',
-    hostname: 'simple-werewolf-32211.upstash.io'
-  }
-}
- GET /api/screenshot?url=http%3A%2F%2F127.0.0.1%3A5501%2Fhtml%2F&websiteId=ff1b525d-e29e-4b9e-81b1-ea97b7a7404e&w=1849&t=1759181392072 307 in 13092ms
+--- [PROCESS_SCREENSHOT_WORKER] ---
+[WORKER] Received job for URL: http://127.0.0.1:5501/html/index.html
+[WORKER] Launching Playwright...
+[WORKER] Playwright screenshot successful.
+[WORKER] Uploading to Vercel Blob...
+[PROCESS_SCREENSHOT_ERROR] Error: Vercel Blob: This blob already exists, use `allowOverwrite: true` if you want to overwrite it. Or `addRandomSuffix: true` to generate a unique filename. Read more about this error in our documentation: https://vercel.link/blob-allow-overwrite
+    at async handler (app\api\process-screenshot\route.ts:45:18)
+    at async POST (app\api\process-screenshot\route.ts:88:12)
+  43 |
+  44 |     console.log('[WORKER] Uploading to Vercel Blob...');
+> 45 |     const blob = await put(`screenshots/${websiteId}-${viewportWidth}.jpeg`, screenshotBuffer, {
+     |                  ^
+  46 |       access: 'public',
+  47 |       contentType: 'image/jpeg',
+  48 |     });
+ POST /api/process-screenshot 500 in 3305ms

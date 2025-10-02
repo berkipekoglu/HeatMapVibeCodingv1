@@ -1,23 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
-import { getToken } from '../../../../../lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@vercel/postgres";
+import { getToken } from "../../../../../lib/auth";
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ websiteId: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ websiteId: string }> }
+) {
   console.log("\n--- Clicks API Request Start ---");
   const token = await getToken(request);
   if (!token) {
     console.log("Clicks API Error: Unauthorized (no token)");
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { websiteId } = await params;
   const { searchParams } = new URL(request.url);
-  const pageUrl = searchParams.get('url');
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
-  const device = searchParams.get('device');
-  const browser = searchParams.get('browser');
-  const os = searchParams.get('os');
+  const pageUrl = searchParams.get("url");
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
+  const device = searchParams.get("device");
+  const browser = searchParams.get("browser");
+  const os = searchParams.get("os");
 
   console.log(`Fetching clicks for websiteId: ${websiteId}`);
   console.log(`Filter Params:`, { pageUrl, startDate, endDate, device, browser, os });
@@ -28,8 +31,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     `;
 
     if (ownerCheck.rowCount === 0) {
-      console.log(`Clicks API Error: Forbidden (user ${token.userId} does not own website ${websiteId})`);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      console.log(
+        `Clicks API Error: Forbidden (user ${token.userId} does not own website ${websiteId})`
+      );
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     let query = `
@@ -41,7 +46,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (pageUrl) {
       // Handle trailing slashes and index.html variations
-      const normalizedUrl = pageUrl.endsWith('/') ? pageUrl.slice(0, -1) : pageUrl;
+      const normalizedUrl = pageUrl.endsWith("/")
+        ? pageUrl.slice(0, -1)
+        : pageUrl;
       query += ` AND (e.url = '${pageUrl}' OR e.url = '${normalizedUrl}/' OR e.url = '${normalizedUrl}/index.html')`;
     }
     if (startDate) query += ` AND e.timestamp >= '${startDate}'`;
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (browser) query += ` AND s.browser = '${browser}'`;
     if (os) query += ` AND s.os = '${os}'`;
 
-    console.log("Executing Query:", query.replace(/\s+/g, ' ').trim());
+    console.log("Executing Query:", query.replace(/\s+/g, " ").trim());
 
     const { rows: clickEvents } = await sql.query(query);
 
@@ -58,9 +65,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     console.log("--- Clicks API Request End ---\n");
 
     return NextResponse.json(clickEvents, { status: 200 });
-
   } catch (error) {
-    console.error('Clicks API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Clicks API Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

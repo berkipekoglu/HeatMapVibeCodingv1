@@ -61,3 +61,27 @@ CREATE INDEX idx_click_events_timestamp ON click_events(timestamp);
 CREATE INDEX idx_mousemove_events_website_id ON mousemove_events(website_id);
 CREATE INDEX idx_mousemove_events_session_id ON mousemove_events(session_id);
 CREATE INDEX idx_mousemove_events_timestamp ON mousemove_events(timestamp);
+
+-- Performance Metrics Table: Stores Core Web Vitals and other performance data.
+CREATE TABLE performance_metrics (
+    id BIGSERIAL PRIMARY KEY,
+    website_id UUID NOT NULL REFERENCES websites(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    metric_name VARCHAR(50) NOT NULL, -- e.g., 'LCP', 'FID', 'CLS'
+    value NUMERIC NOT NULL,
+    timestamp TIMESTAMPTZ DEFAULT now()
+);
+
+-- JavaScript Errors Table: Stores errors caught from the client-side.
+CREATE TABLE js_errors (
+    id BIGSERIAL PRIMARY KEY,
+    website_id UUID NOT NULL REFERENCES websites(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    error_message TEXT NOT NULL,
+    stack_trace TEXT,
+    timestamp TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create indexes for new tables
+CREATE INDEX idx_performance_metrics_website_id ON performance_metrics(website_id);
+CREATE INDEX idx_js_errors_website_id ON js_errors(website_id);

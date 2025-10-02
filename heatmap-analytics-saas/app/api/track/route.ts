@@ -28,6 +28,12 @@ export async function POST(request: Request) {
       case 'mousemove':
         await handleMoveEvent(payload, dbSessionId);
         break;
+      case 'performance':
+        await handlePerformanceMetric(payload, dbSessionId);
+        break;
+      case 'js_error':
+        await handleJsError(payload, dbSessionId);
+        break;
       default:
         return NextResponse.json({ message: "Invalid event type" }, { status: 400 });
     }
@@ -109,4 +115,28 @@ export async function OPTIONS() {
       "Access-Control-Allow-Headers": "Content-Type",
     },
   });
+}
+
+async function handlePerformanceMetric(payload: any, dbSessionId: string) {
+  const { websiteId, metricName, value } = payload;
+  if (!websiteId || !metricName || typeof value !== 'number') {
+    throw new Error("Invalid performance metric data format");
+  }
+
+  await sql`
+    INSERT INTO performance_metrics (website_id, session_id, metric_name, value)
+    VALUES (${websiteId}, ${dbSessionId}, ${metricName}, ${value});
+  `;
+}
+
+async function handleJsError(payload: any, dbSessionId: string) {
+  const { websiteId, errorMessage, stackTrace } = payload;
+  if (!websiteId || !errorMessage) {
+    throw new Error("Invalid JS error data format");
+  }
+
+  await sql`
+    INSERT INTO js_errors (website_id, session_id, error_message, stack_trace)
+    VALUES (${websiteId}, ${dbSessionId}, ${errorMessage}, ${stackTrace});
+  `;
 }

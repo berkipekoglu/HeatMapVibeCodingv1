@@ -1,30 +1,32 @@
-
-import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
-import { getToken } from '../../../../../lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@vercel/postgres";
+import { getToken } from "../../../../../lib/auth";
 
 interface MoveEventFromDB {
-    points: { x: number, y: number }[];
-    viewport_width: number;
-    viewport_height: number;
+  points: { x: number; y: number }[];
+  viewport_width: number;
+  viewport_height: number;
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ websiteId: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ websiteId: string }> }
+) {
   console.log("\n--- Moves API Request Start ---");
   const token = await getToken(request);
   if (!token) {
     console.log("Moves API Error: Unauthorized (no token)");
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { websiteId } = await params;
   const { searchParams } = new URL(request.url);
-  const pageUrl = searchParams.get('url');
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
-  const device = searchParams.get('device');
-  const browser = searchParams.get('browser');
-  const os = searchParams.get('os');
+  const pageUrl = searchParams.get("url");
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
+  const device = searchParams.get("device");
+  const browser = searchParams.get("browser");
+  const os = searchParams.get("os");
 
   console.log(`Fetching moves for websiteId: ${websiteId}`);
   console.log(`Filter Params:`, { pageUrl, startDate, endDate, device, browser, os });
@@ -35,8 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     `;
 
     if (ownerCheck.rowCount === 0) {
-      console.log(`Moves API Error: Forbidden (user ${token.userId} does not own website ${websiteId})`);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     let query = `
@@ -46,18 +47,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       WHERE e.website_id = '${websiteId}'
     `;
 
-    if (pageUrl) {
-      // Handle trailing slashes and index.html variations
-      const normalizedUrl = pageUrl.endsWith('/') ? pageUrl.slice(0, -1) : pageUrl;
-      query += ` AND (e.url = '${pageUrl}' OR e.url = '${normalizedUrl}/' OR e.url = '${normalizedUrl}/index.html')`;
-    }
+    if (pageUrl)
+      query += ` AND (e.url = '${pageUrl}' OR e.url = '${pageUrl.slice(
+        0,
+        -1
+      )}' OR e.url = '${pageUrl}index.html')`;
     if (startDate) query += ` AND e.timestamp >= '${startDate}'`;
     if (endDate) query += ` AND e.timestamp <= '${endDate}'`;
     if (device) query += ` AND s.device = '${device}'`;
     if (browser) query += ` AND s.browser = '${browser}'`;
     if (os) query += ` AND s.os = '${os}'`;
 
-    console.log("Executing Query:", query.replace(/\s+/g, ' ').trim());
+    console.log("Executing Query:", query.replace(/\s+/g, " ").trim());
 
     const { rows: moveEvents } = await sql.query(query);
 
@@ -65,18 +66,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     console.log("--- Moves API Request End ---\n");
 
     const flattenedPoints = moveEvents.flatMap((event: any) => {
-        return event.points.map((point: any) => ({
-            x: point.x,
-            y: point.y,
-            viewport_width: event.viewport_width,
-            viewport_height: event.viewport_height
-        }));
+      return event.points.map((point: any) => ({
+        x: point.x,
+        y: point.y,
+        viewport_width: event.viewport_width,
+        viewport_height: event.viewport_height,
+      }));
     });
 
     return NextResponse.json(flattenedPoints, { status: 200 });
-
   } catch (error) {
-    console.error('Moves API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Moves API Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

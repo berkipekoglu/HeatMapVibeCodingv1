@@ -126,5 +126,56 @@
   // Send any remaining data when the user leaves the page
   window.addEventListener("beforeunload", sendMoveData);
 
+  /**
+   * Captures and sends performance metrics (Core Web Vitals).
+   * @param {object} metric - The performance metric object.
+   */
+  function captureMetric(metric) {
+    const data = {
+      type: "performance",
+      payload: {
+        websiteId: websiteId,
+        sessionId: sessionId,
+        metricName: metric.name,
+        value: metric.value,
+      },
+    };
+    sendData(data);
+  }
+
+  // --- Performance Observer for Core Web Vitals ---
+  try {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        // We only want to capture LCP, FID, and CLS
+        if (['largest-contentful-paint', 'first-input-delay', 'cumulative-layout-shift'].includes(entry.name)) {
+          captureMetric({
+            name: entry.name,
+            value: entry.value,
+          });
+        }
+      }
+    });
+    observer.observe({ type: ['largest-contentful-paint', 'first-input-delay', 'layout-shift'], buffered: true });
+  } catch (e) {
+    // PerformanceObserver may not be supported in all browsers.
+    console.warn("PerformanceObserver not supported.");
+  }
+
+  // --- JavaScript Error Tracking ---
+  window.onerror = function (message, source, lineno, colno, error) {
+    const errorData = {
+      type: "js_error",
+      payload: {
+        websiteId: websiteId,
+        sessionId: sessionId,
+        errorMessage: message,
+        stackTrace: error ? error.stack : `${source}:${lineno}:${colno}`,
+      },
+    };
+    sendData(errorData);
+    return false; // Don't suppress the error from the browser console
+  };
+
   console.log("Heatmap Tracker is active for website:", websiteId, "Session:", sessionId);
 })();

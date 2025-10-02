@@ -3,45 +3,57 @@ import { redirect } from "next/navigation";
 import DashboardClient, { WebsiteData, StatsData } from "./DashboardClient";
 
 async function getAuthenticatedFetch() {
-  const cookieStore = cookies();
-  const token = (await cookieStore).get("token")?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
 
   if (!token) {
     redirect("/login");
   }
 
-  const headersList = headers();
+  const headersList = await headers();
   const host = headersList.get("host") || "";
   const protocol = host.startsWith("localhost") ? "http" : "https";
 
   return (url: string, options: RequestInit = {}) => {
     const requestHeaders = new Headers(options.headers);
-    requestHeaders.set('Cookie', `token=${token}`);
-    return fetch(`${protocol}://${host}${url}`, { ...options, headers: requestHeaders, cache: "no-store" });
+    requestHeaders.set("Cookie", `token=${token}`);
+    return fetch(`${protocol}://${host}${url}`, {
+      ...options,
+      headers: requestHeaders,
+      cache: "no-store",
+    });
   };
 }
 
 export default async function DashboardPage() {
   let websites: WebsiteData[] = [];
   let stats: StatsData | null = null;
+  let performanceMetrics: any[] = [];
+  let jsErrors: any[] = [];
 
   try {
     const authedFetch = await getAuthenticatedFetch();
-    
+
     const websitesRes = await authedFetch("/api/websites");
     if (websitesRes.status === 401) redirect("/login");
-    if (!websitesRes.ok) throw new Error(`Failed to fetch websites. Status: ${websitesRes.status}`);
+    if (!websitesRes.ok)
+      throw new Error(
+        `Failed to fetch websites. Status: ${websitesRes.status}`
+      );
     websites = await websitesRes.json();
 
-    // If there are websites, fetch stats for the first one
     if (websites.length > 0) {
       const firstWebsiteId = websites[0].id;
-      const statsRes = await authedFetch(`/api/websites/${firstWebsiteId}/stats`);
-      if (statsRes.ok) {
-        stats = await statsRes.json();
-      }
-    }
+      const [statsRes, perfRes, errorsRes] = await Promise.all([
+        authedFetch(`/api/websites/${firstWebsiteId}/stats`),
+        authedFetch(`/api/websites/${firstWebsiteId}/performance`),
+        authedFetch(`/api/websites/${firstWebsiteId}/errors`),
+      ]);
 
+      if (statsRes.ok) stats = await statsRes.json();
+      if (perfRes.ok) performanceMetrics = await perfRes.json();
+      if (errorsRes.ok) jsErrors = await errorsRes.json();
+    }
   } catch (error: any) {
     if (error.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
@@ -61,6 +73,8 @@ export default async function DashboardPage() {
       totalWebsites={totalWebsites}
       totalClicks={totalClicks}
       initialStats={stats}
+      performanceMetrics={performanceMetrics}
+      jsErrors={jsErrors}
     />
   );
 }

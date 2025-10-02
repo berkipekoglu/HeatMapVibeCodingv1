@@ -35,17 +35,17 @@ import {
   MousePointerClick,
   RefreshCw,
 } from "lucide-react";
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Bar, 
-  PieChart, 
-  Pie, 
-  Cell 
-} from 'recharts';
+import {
+  ResponsiveContainer,
+  BarChart,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 // Data Structures
 export interface WebsiteData {
@@ -68,28 +68,53 @@ interface DashboardClientProps {
   totalClicks: number;
   totalWebsites: number;
   initialStats: StatsData | null;
+  performanceMetrics: any[];
+  jsErrors: any[];
 }
 
 // Chart Components
-const ClicksChart = ({ data }: { data: StatsData['clicksOverTime'] }) => (
+const ClicksChart = ({ data }: { data: StatsData["clicksOverTime"] }) => (
   <ResponsiveContainer width="100%" height={300}>
     <BarChart data={data}>
-      <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+      <XAxis
+        dataKey="date"
+        stroke="#888888"
+        fontSize={12}
+        tickLine={false}
+        axisLine={false}
+      />
       <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-      <Tooltip wrapperClassName="!bg-background !border-border" />
+      <Tooltip
+        wrapperClassName="!bg-background !border-border"
+        formatter={(value) => [value, "Tıklamalar"]}
+        labelFormatter={(label) =>
+          `Tarih: ${new Date(label).toLocaleDateString()}`
+        }
+      />
       <Bar dataKey="clicks" fill="#8884d8" radius={[4, 4, 0, 0]} />
     </BarChart>
   </ResponsiveContainer>
 );
 
-const DeviceChart = ({ data }: { data: StatsData['deviceStats'] }) => {
-  const COLORS = { desktop: '#8884d8', mobile: '#82ca9d' };
+const DeviceChart = ({ data }: { data: StatsData["deviceStats"] }) => {
+  const COLORS = { desktop: "#8884d8", mobile: "#82ca9d" };
   return (
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
-        <Pie data={data} dataKey="count" nameKey="device" cx="50%" cy="50%" outerRadius={80} label>
+        <Pie
+          data={data}
+          dataKey="count"
+          nameKey="device"
+          cx="50%"
+          cy="50%"
+          outerRadius={80}
+          label
+        >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[entry.device as keyof typeof COLORS] || '#d3d3d3'} />
+            <Cell
+              key={`cell-${index}`}
+              fill={COLORS[entry.device as keyof typeof COLORS] || "#d3d3d3"}
+            />
           ))}
         </Pie>
         <Tooltip wrapperClassName="!bg-background !border-border" />
@@ -123,21 +148,33 @@ function TrackerScriptDialog({ site }: { site: WebsiteData }) {
         </DialogHeader>
         <div className="py-4">
           <p className="text-sm text-muted-foreground mb-4">
-            Bu kodu kopyalayıp, sitenizin &lt;head&gt; etiketinin içine yapıştırın.
+            Bu kodu kopyalayıp, sitenizin &lt;head&gt; etiketinin içine
+            yapıştırın.
           </p>
           <div className="relative">
             <pre className="bg-gray-900 text-white rounded-md p-4 pr-16 text-sm overflow-x-auto text-wrap">
               <code>{scriptText}</code>
             </pre>
-            <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-gray-400 hover:text-white hover:bg-gray-700" onClick={handleCopy}>
-              {hasCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 text-gray-400 hover:text-white hover:bg-gray-700"
+              onClick={handleCopy}
+            >
+              {hasCopied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
               <span className="sr-only">{hasCopied ? "Copied" : "Copy"}</span>
             </Button>
           </div>
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="secondary">Close</Button>
+            <Button type="button" variant="secondary">
+              Close
+            </Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
@@ -146,19 +183,89 @@ function TrackerScriptDialog({ site }: { site: WebsiteData }) {
 }
 
 // Main Component
+const PerformanceCard = ({
+  title,
+  value,
+  unit,
+}: {
+  title: string;
+  value: number;
+  unit: string;
+}) => (
+  <Card>
+    <CardHeader className="pb-2">
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">
+        {value.toFixed(2)}
+        <span className="text-xs text-muted-foreground">{unit}</span>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const ErrorsTable = ({ errors }: { errors: any[] }) => (
+  <Card className="col-span-1 md:col-span-2 lg:col-span-4">
+    <CardHeader>
+      <CardTitle>Latest JavaScript Errors</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Error Message</TableHead>
+            <TableHead>Timestamp</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {errors.length > 0 ? (
+            errors.map((error, index) => (
+              <TableRow key={index}>
+                <TableCell className="font-mono text-xs">
+                  {error.error_message}
+                </TableCell>
+                <TableCell>
+                  {new Date(error.timestamp).toLocaleString()}
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={2} className="text-center h-24">
+                No JavaScript errors recorded.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </CardContent>
+  </Card>
+);
+
 export default function DashboardClient({
   initialWebsites,
   totalClicks,
   totalWebsites,
   initialStats,
+  performanceMetrics,
+  jsErrors,
 }: DashboardClientProps) {
   const [websites, setWebsites] = useState<WebsiteData[]>(initialWebsites);
+  console.log("initialStats:", initialStats);
   const [stats, setStats] = useState<StatsData | null>(initialStats);
   const [error, setError] = useState("");
   const [formState, setFormState] = useState({ name: "", url: "" });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState<string | null>(null);
   const router = useRouter();
+
+  const lcp = performanceMetrics.find(
+    (m) => m.metric_name === "largest-contentful-paint"
+  );
+  const cls = performanceMetrics.find(
+    (m) => m.metric_name === "cumulative-layout-shift"
+  );
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -265,6 +372,40 @@ export default function DashboardClient({
           </div>
         )}
 
+        {/* Site Health Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Site Health</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+            {performanceMetrics.find(
+              (m) => m.metric_name === "largest-contentful-paint"
+            ) && (
+              <PerformanceCard
+                title="Largest Contentful Paint (LCP)"
+                value={
+                  performanceMetrics.find(
+                    (m) => m.metric_name === "largest-contentful-paint"
+                  ).average_value / 1000
+                }
+                unit="s"
+              />
+            )}
+            {performanceMetrics.find(
+              (m) => m.metric_name === "cumulative-layout-shift"
+            ) && (
+              <PerformanceCard
+                title="Cumulative Layout Shift (CLS)"
+                value={
+                  performanceMetrics.find(
+                    (m) => m.metric_name === "cumulative-layout-shift"
+                  ).average_value
+                }
+                unit=""
+              />
+            )}
+          </div>
+          <ErrorsTable errors={jsErrors} />
+        </div>
+
         {/* Websites Table */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -288,17 +429,48 @@ export default function DashboardClient({
                 <form onSubmit={handleSubmit}>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="name" className="text-right">Başlık</Label>
-                      <Input id="name" value={formState.name} onChange={(e) => setFormState({ ...formState, name: e.target.value })} className="col-span-3" placeholder="My Awesome Blog" required />
+                      <Label htmlFor="name" className="text-right">
+                        Başlık
+                      </Label>
+                      <Input
+                        id="name"
+                        value={formState.name}
+                        onChange={(e) =>
+                          setFormState({ ...formState, name: e.target.value })
+                        }
+                        className="col-span-3"
+                        placeholder="My Awesome Blog"
+                        required
+                      />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="url" className="text-right">URL</Label>
-                      <Input id="url" type="url" value={formState.url} onChange={(e) => setFormState({ ...formState, url: e.target.value })} className="col-span-3" placeholder="https://example.com" required />
+                      <Label htmlFor="url" className="text-right">
+                        URL
+                      </Label>
+                      <Input
+                        id="url"
+                        type="url"
+                        value={formState.url}
+                        onChange={(e) =>
+                          setFormState({ ...formState, url: e.target.value })
+                        }
+                        className="col-span-3"
+                        placeholder="https://example.com"
+                        required
+                      />
                     </div>
                   </div>
-                  {error && <p className="text-red-500 text-sm text-center mb-2">{error}</p>}
+                  {error && (
+                    <p className="text-red-500 text-sm text-center mb-2">
+                      {error}
+                    </p>
+                  )}
                   <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="secondary">İptal</Button></DialogClose>
+                    <DialogClose asChild>
+                      <Button type="button" variant="secondary">
+                        İptal
+                      </Button>
+                    </DialogClose>
                     <Button type="submit">Web Sitesi Ekle</Button>
                   </DialogFooter>
                 </form>
@@ -321,22 +493,53 @@ export default function DashboardClient({
                     <TableRow key={site.id}>
                       <TableCell className="font-medium">{site.name}</TableCell>
                       <TableCell>
-                        <a href={site.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">{site.url}</a>
+                        <a
+                          href={site.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          {site.url}
+                        </a>
                       </TableCell>
-                      <TableCell className="text-center">{site.click_count}</TableCell>
+                      <TableCell className="text-center">
+                        {site.click_count}
+                      </TableCell>
                       <TableCell className="text-right flex items-center justify-end space-x-2">
-                        <Button asChild variant="outline" size="sm"><Link href={`/dashboard/websites/${site.id}/clicks`}><Eye className="w-4 h-4 mr-2" />Click Map</Link></Button>
-                        <Button asChild variant="outline" size="sm"><Link href={`/dashboard/websites/${site.id}/moves`}><MousePointerClick className="w-4 h-4 mr-2" />Move Map</Link></Button>
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/dashboard/websites/${site.id}/clicks`}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Click Map
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/dashboard/websites/${site.id}/moves`}>
+                            <MousePointerClick className="w-4 h-4 mr-2" />
+                            Move Map
+                          </Link>
+                        </Button>
                         <TrackerScriptDialog site={site} />
-                        <Button variant="outline" size="icon" title="Refresh Screenshot" onClick={() => handleRefreshScreenshot(site)} disabled={refreshing === site.id}>
-                          <RefreshCw className={`h-4 w-4 ${refreshing === site.id ? 'animate-spin' : ''}`} />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Refresh Screenshot"
+                          onClick={() => handleRefreshScreenshot(site)}
+                          disabled={refreshing === site.id}
+                        >
+                          <RefreshCw
+                            className={`h-4 w-4 ${
+                              refreshing === site.id ? "animate-spin" : ""
+                            }`}
+                          />
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center h-24">No websites added yet.</TableCell>
+                    <TableCell colSpan={4} className="text-center h-24">
+                      No websites added yet.
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>

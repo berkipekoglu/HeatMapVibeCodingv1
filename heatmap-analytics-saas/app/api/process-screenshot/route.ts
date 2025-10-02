@@ -45,6 +45,7 @@ async function handler(req: NextRequest) {
     const blob = await put(`screenshots/${websiteId}-${viewportWidth}.jpeg`, screenshotBuffer, {
       access: 'public',
       contentType: 'image/jpeg',
+      allowOverwrite: true, // Allow overwriting existing screenshots
     });
     console.log(`[WORKER] Upload successful. Blob URL: ${blob.url}`);
 
