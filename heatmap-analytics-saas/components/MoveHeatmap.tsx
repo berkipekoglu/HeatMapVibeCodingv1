@@ -188,28 +188,47 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats
         </div>
       </div>
 
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
+
+// ... (rest of the imports)
+
+// ... (rest of the component code)
+
       <div className="relative w-full flex justify-center items-start pt-4">
         {(isLoading || (statusMessage && statusMessage.includes('Generating'))) && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
-            <p className="text-lg text-gray-600">{statusMessage}</p>
+          <div className="absolute inset-0 flex items-center justify-center z-20">
+            <Empty className="w-full">
+              <EmptyHeader>
+                <EmptyMedia variant="icon"><Spinner /></EmptyMedia>
+                <EmptyTitle>{statusMessage.includes('Generating') ? "Site Önizlemesi Oluşturuluyor" : "Veriler Yükleniyor"}</EmptyTitle>
+                <EmptyDescription>
+                  Lütfen bekleyin, bu işlem birkaç saniye sürebilir. Sayfayı yenilemeyin.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           </div>
         )}
         
         {!isLoading && eventData.length === 0 && (
-          <div className="text-center p-4">
-            <p className="text-lg text-gray-600">{statusMessage}</p>
-          </div>
+          <Empty className="w-full py-10">
+            <EmptyHeader>
+              <EmptyTitle>Veri Bulunamadı</EmptyTitle>
+              <EmptyDescription>
+                Yaptığınız filtreleme seçimi için gösterilecek herhangi bir hareket verisi bulunamadı.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
 
         {screenshotUrl && (
-          <div className="relative inline-block shadow-lg" style={{ fontSize: 0 }}>
+          <div className="relative inline-block shadow-lg" style={{ fontSize: 0, visibility: isLoading ? 'hidden' : 'visible' }}>
             <img
               ref={screenshotRef}
               src={screenshotUrl}
               alt="Website Screenshot"
               onLoad={handleImageLoad}
               className="relative z-0"
-              style={{ visibility: isLoading ? 'hidden' : 'visible' }}
             />
             <div
               ref={heatmapContainerRef}
