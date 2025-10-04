@@ -172,7 +172,7 @@ export default function ClickHeatmap({
       }
       if (!heatmapInstance.current) {
         heatmapInstance.current = H.create({
-          container: heatmapContainerRef.current,
+          container: heatmapContainerRef.current as HTMLElement,
           radius: 25,
           maxOpacity: 0.6,
           minOpacity: 0.1,

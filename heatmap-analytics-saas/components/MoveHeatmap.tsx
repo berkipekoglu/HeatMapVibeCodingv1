@@ -5,7 +5,22 @@ import H from "heatmap.js";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 
 // Type definitions
 interface HeatmapEvent {
@@ -29,7 +44,12 @@ interface HeatmapProps {
   stats: StatsData | null;
 }
 
-export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats }: HeatmapProps) {
+export default function MoveHeatmap({
+  websiteId,
+  websiteUrl,
+  initialPages,
+  stats,
+}: HeatmapProps) {
   const [eventData, setEventData] = useState<HeatmapEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState("Loading move data...");
@@ -60,12 +80,14 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats
           url: selectedPage,
           ...(dateRange?.from && { startDate: dateRange.from.toISOString() }),
           ...(dateRange?.to && { endDate: dateRange.to.toISOString() }),
-          ...(selectedDevice !== 'all' && { device: selectedDevice }),
-          ...(selectedBrowser !== 'all' && { browser: selectedBrowser }),
-          ...(selectedOs !== 'all' && { os: selectedOs }),
+          ...(selectedDevice !== "all" && { device: selectedDevice }),
+          ...(selectedBrowser !== "all" && { browser: selectedBrowser }),
+          ...(selectedOs !== "all" && { os: selectedOs }),
         });
 
-        const dataRes = await fetch(`/api/websites/${websiteId}/moves?${params.toString()}`);
+        const dataRes = await fetch(
+          `/api/websites/${websiteId}/moves?${params.toString()}`
+        );
         if (!dataRes.ok) throw new Error("Failed to fetch move data");
         const data = await dataRes.json();
         setEventData(data);
@@ -94,16 +116,25 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats
     return () => {
       if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
     };
-  }, [websiteId, selectedPage, dateRange, selectedDevice, selectedBrowser, selectedOs]);
+  }, [
+    websiteId,
+    selectedPage,
+    dateRange,
+    selectedDevice,
+    selectedBrowser,
+    selectedOs,
+  ]);
 
   const handleImageLoad = () => {
     const img = screenshotRef.current;
     if (!img) return;
 
     if (img.src.includes("placeholder.svg")) {
-      setStatusMessage("Generating website preview... (this may take a moment)");
+      setStatusMessage(
+        "Generating website preview... (this may take a moment)"
+      );
       pollingTimeoutRef.current = setTimeout(() => {
-        const newUrl = `${screenshotUrl.split('&t=')[0]}&t=${Date.now()}`;
+        const newUrl = `${screenshotUrl.split("&t=")[0]}&t=${Date.now()}`;
         setScreenshotUrl(newUrl);
       }, 3000);
     } else {
@@ -114,7 +145,13 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats
   };
 
   useEffect(() => {
-    if (isLoading || !screenshotUrl || !eventData.length || !heatmapContainerRef.current || !screenshotRef.current) {
+    if (
+      isLoading ||
+      !screenshotUrl ||
+      !eventData.length ||
+      !heatmapContainerRef.current ||
+      !screenshotRef.current
+    ) {
       return;
     }
     const img = screenshotRef.current;
@@ -127,7 +164,13 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats
         heatmapContainerRef.current.style.height = `${img.naturalHeight}px`;
       }
       if (!heatmapInstance.current) {
-        heatmapInstance.current = H.create({ container: heatmapContainerRef.current, radius: 15, maxOpacity: 0.5, minOpacity: 0.1, blur: 0.9 });
+        heatmapInstance.current = H.create({
+          container: heatmapContainerRef.current as HTMLElement,
+          radius: 15,
+          maxOpacity: 0.5,
+          minOpacity: 0.1,
+          blur: 0.9,
+        });
       }
       const dataPoints = eventData.map((event) => ({
         x: Math.round(event.x * (screenshotWidth / event.viewport_width)),
@@ -144,85 +187,139 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats
     <div className="p-4 space-y-4">
       <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-card">
         <div className="flex-1 min-w-[150px]">
-          <Label htmlFor="page-select" className="text-sm font-medium text-muted-foreground">Page</Label>
+          <Label
+            htmlFor="page-select"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            Page
+          </Label>
           <Select value={selectedPage} onValueChange={setSelectedPage}>
-            <SelectTrigger id="page-select" className="mt-1 w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="page-select" className="mt-1 w-full">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              {pages.map(page => <SelectItem key={page} value={page}>{new URL(page).pathname}</SelectItem>)}
+              {pages.map((page) => (
+                <SelectItem key={page} value={page}>
+                  {new URL(page).pathname}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <Label htmlFor="device-select" className="text-sm font-medium text-muted-foreground">Device</Label>
+          <Label
+            htmlFor="device-select"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            Device
+          </Label>
           <Select value={selectedDevice} onValueChange={setSelectedDevice}>
-            <SelectTrigger id="device-select" className="mt-1 w-full"><SelectValue placeholder="All Devices" /></SelectTrigger>
+            <SelectTrigger id="device-select" className="mt-1 w-full">
+              <SelectValue placeholder="All Devices" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Devices</SelectItem>
-              {stats?.deviceStats.map(s => <SelectItem key={s.device} value={s.device}>{s.device}</SelectItem>)}
+              {stats?.deviceStats.map((s) => (
+                <SelectItem key={s.device} value={s.device}>
+                  {s.device}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <Label htmlFor="browser-select" className="text-sm font-medium text-muted-foreground">Browser</Label>
+          <Label
+            htmlFor="browser-select"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            Browser
+          </Label>
           <Select value={selectedBrowser} onValueChange={setSelectedBrowser}>
-            <SelectTrigger id="browser-select" className="mt-1 w-full"><SelectValue placeholder="All Browsers" /></SelectTrigger>
+            <SelectTrigger id="browser-select" className="mt-1 w-full">
+              <SelectValue placeholder="All Browsers" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Browsers</SelectItem>
-              {stats?.browserStats.map(s => <SelectItem key={s.browser} value={s.browser}>{s.browser}</SelectItem>)}
+              {stats?.browserStats.map((s) => (
+                <SelectItem key={s.browser} value={s.browser}>
+                  {s.browser}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <Label htmlFor="os-select" className="text-sm font-medium text-muted-foreground">OS</Label>
+          <Label
+            htmlFor="os-select"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            OS
+          </Label>
           <Select value={selectedOs} onValueChange={setSelectedOs}>
-            <SelectTrigger id="os-select" className="mt-1 w-full"><SelectValue placeholder="All OS" /></SelectTrigger>
+            <SelectTrigger id="os-select" className="mt-1 w-full">
+              <SelectValue placeholder="All OS" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All OS</SelectItem>
-              {stats?.osStats.map(s => <SelectItem key={s.os} value={s.os}>{s.os}</SelectItem>)}
+              {stats?.osStats.map((s) => (
+                <SelectItem key={s.os} value={s.os}>
+                  {s.os}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex-1 min-w-[300px]">
-          <Label className="text-sm font-medium text-muted-foreground">Date Range</Label>
+          <Label className="text-sm font-medium text-muted-foreground">
+            Date Range
+          </Label>
           <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         </div>
       </div>
 
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
-
-// ... (rest of the imports)
-
-// ... (rest of the component code)
-
-      <div className="relative w-full flex justify-center items-start pt-4">
-        {(isLoading || (statusMessage && statusMessage.includes('Generating'))) && (
-          <div className="absolute inset-0 flex items-center justify-center z-20">
+      <div className="w-full flex justify-center items-start pt-4">
+        {(isLoading ||
+          (statusMessage && statusMessage.includes("Generating"))) && (
+          <div className="inset-0 flex items-center justify-center z-20">
             <Empty className="w-full">
               <EmptyHeader>
-                <EmptyMedia variant="icon"><Spinner /></EmptyMedia>
-                <EmptyTitle>{statusMessage.includes('Generating') ? "Site Önizlemesi Oluşturuluyor" : "Veriler Yükleniyor"}</EmptyTitle>
+                <EmptyMedia variant="icon">
+                  <Spinner />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {statusMessage.includes("Generating")
+                    ? "Site Önizlemesi Oluşturuluyor"
+                    : "Veriler Yükleniyor"}
+                </EmptyTitle>
                 <EmptyDescription>
-                  Lütfen bekleyin, bu işlem birkaç saniye sürebilir. Sayfayı yenilemeyin.
+                  Lütfen bekleyin, bu işlem birkaç saniye sürebilir. Sayfayı
+                  yenilemeyin.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
           </div>
         )}
-        
+
         {!isLoading && eventData.length === 0 && (
           <Empty className="w-full py-10">
             <EmptyHeader>
               <EmptyTitle>Veri Bulunamadı</EmptyTitle>
               <EmptyDescription>
-                Yaptığınız filtreleme seçimi için gösterilecek herhangi bir hareket verisi bulunamadı.
+                Yaptığınız filtreleme seçimi için gösterilecek herhangi bir
+                hareket verisi bulunamadı.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
 
         {screenshotUrl && (
-          <div className="relative inline-block shadow-lg" style={{ fontSize: 0, visibility: isLoading ? 'hidden' : 'visible' }}>
+          <div
+            className="relative inline-block shadow-lg"
+            style={{
+              fontSize: 0,
+              visibility: isLoading ? "hidden" : "visible",
+            }}
+          >
             <img
               ref={screenshotRef}
               src={screenshotUrl}
