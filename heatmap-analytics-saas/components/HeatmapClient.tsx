@@ -154,7 +154,7 @@ export default function HeatmapClient({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-shrink-0 p-2 border-b bg-gray-50 flex items-center justify-center space-x-2">
+      <div className="shrink-0 p-2 border-b bg-gray-50 flex items-center justify-center space-x-2">
         <Button
           variant={heatmapType === "click" ? "default" : "outline"}
           onClick={() => setHeatmapType("click")}
@@ -168,7 +168,7 @@ export default function HeatmapClient({
           Move Map
         </Button>
       </div>
-      <div className="flex-grow relative w-full h-full overflow-auto flex justify-center items-center bg-gray-100 p-4">
+      <div className="grow relative w-full h-full overflow-auto flex justify-center items-center bg-gray-100 p-4">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20">
             <p className="text-lg text-gray-600">{loadingMessage}</p>

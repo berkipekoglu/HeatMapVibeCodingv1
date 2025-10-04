@@ -4,7 +4,7 @@ import { getToken } from "../../../../../lib/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { websiteId: string } }
+  { params }: { params: Promise<{ websiteId: string }> }
 ) {
   const token = await getToken(request);
   if (!token) {
@@ -12,6 +12,7 @@ export async function GET(
   }
 
   const { websiteId } = await params;
+  const { searchParams } = new URL(request.url);
 
   try {
     // Verify user ownership
@@ -22,40 +23,39 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // --- Build Dynamic WHERE Clause from Filters ---
+    const filters: string[] = [`e.website_id = '${websiteId}'`];
+    if (searchParams.has('startDate')) {
+      filters.push(`e.timestamp >= '${searchParams.get('startDate')}'`);
+    }
+    if (searchParams.has('endDate')) {
+      filters.push(`e.timestamp <= '${searchParams.get('endDate')}'`);
+    }
+    if (searchParams.has('pageUrl')) {
+      const pageUrl = searchParams.get('pageUrl')!;
+      const normalizedUrl = pageUrl.endsWith('/') ? pageUrl.slice(0, -1) : pageUrl;
+      filters.push(`(e.url = '${pageUrl}' OR e.url = '${normalizedUrl}/' OR e.url = '${normalizedUrl}/index.html')`);
+    }
+    if (searchParams.has('device')) {
+      filters.push(`s.device = '${searchParams.get('device')}'`);
+    }
+    if (searchParams.has('browser')) {
+      filters.push(`s.browser = '${searchParams.get('browser')}'`);
+    }
+    if (searchParams.has('os')) {
+      filters.push(`s.os = '${searchParams.get('os')}'`);
+    }
+
+    const whereClause = filters.join(' AND ');
+
+    const baseQuery = `FROM click_events e JOIN sessions s ON e.session_id = s.id WHERE ${whereClause}`;
+
     // Run all stats queries in parallel
     const [clicksOverTime, browserStats, osStats, deviceStats] = await Promise.all([
-      // Clicks in the last 14 days, grouped by day
-      sql`
-        SELECT DATE(timestamp) as date, COUNT(*) as clicks
-        FROM click_events
-        WHERE website_id = ${websiteId} AND timestamp >= NOW() - INTERVAL '14 days'
-        GROUP BY DATE(timestamp)
-        ORDER BY date ASC;
-      `,
-      // Stats by browser
-      sql`
-        SELECT browser, COUNT(*) as count
-        FROM sessions
-        WHERE website_id = ${websiteId} AND browser IS NOT NULL
-        GROUP BY browser
-        ORDER BY count DESC;
-      `,
-      // Stats by OS
-      sql`
-        SELECT os, COUNT(*) as count
-        FROM sessions
-        WHERE website_id = ${websiteId} AND os IS NOT NULL
-        GROUP BY os
-        ORDER BY count DESC;
-      `,
-      // Stats by device type
-      sql`
-        SELECT device, COUNT(*) as count
-        FROM sessions
-        WHERE website_id = ${websiteId} AND device IS NOT NULL
-        GROUP BY device
-        ORDER BY count DESC;
-      `
+      sql.query(`SELECT DATE(e.timestamp) as date, COUNT(*) as clicks ${baseQuery} GROUP BY DATE(e.timestamp) ORDER BY date ASC`),
+      sql.query(`SELECT s.browser, COUNT(DISTINCT s.id) as count ${baseQuery} AND s.browser IS NOT NULL GROUP BY s.browser ORDER BY count DESC`),
+      sql.query(`SELECT s.os, COUNT(DISTINCT s.id) as count ${baseQuery} AND s.os IS NOT NULL GROUP BY s.os ORDER BY count DESC`),
+      sql.query(`SELECT s.device, COUNT(DISTINCT s.id) as count ${baseQuery} AND s.device IS NOT NULL GROUP BY s.device ORDER BY count DESC`),
     ]);
 
     // Parse string counts to numbers for recharts

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import H from "heatmap.js";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Type definitions
 interface HeatmapEvent {
@@ -94,7 +96,6 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats
     };
   }, [websiteId, selectedPage, dateRange, selectedDevice, selectedBrowser, selectedOs]);
 
-  // ... (handleImageLoad and heatmap rendering useEffect remain the same)
   const handleImageLoad = () => {
     const img = screenshotRef.current;
     if (!img) return;
@@ -143,34 +144,46 @@ export default function MoveHeatmap({ websiteId, websiteUrl, initialPages, stats
     <div className="p-4 space-y-4">
       <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-card">
         <div className="flex-1 min-w-[150px]">
-          <label htmlFor="page-select" className="text-sm font-medium text-muted-foreground">Page</label>
-          <select id="page-select" value={selectedPage} onChange={(e) => setSelectedPage(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
-            {pages.map(page => <option key={page} value={page}>{new URL(page).pathname}</option>)}
-          </select>
+          <Label htmlFor="page-select" className="text-sm font-medium text-muted-foreground">Page</Label>
+          <Select value={selectedPage} onValueChange={setSelectedPage}>
+            <SelectTrigger id="page-select" className="mt-1 w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {pages.map(page => <SelectItem key={page} value={page}>{new URL(page).pathname}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <label className="text-sm font-medium text-muted-foreground">Device</label>
-          <select id="device-select" value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
-            <option value="all">All Devices</option>
-            {stats?.deviceStats.map(s => <option key={s.device} value={s.device}>{s.device}</option>)}
-          </select>
+          <Label htmlFor="device-select" className="text-sm font-medium text-muted-foreground">Device</Label>
+          <Select value={selectedDevice} onValueChange={setSelectedDevice}>
+            <SelectTrigger id="device-select" className="mt-1 w-full"><SelectValue placeholder="All Devices" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Devices</SelectItem>
+              {stats?.deviceStats.map(s => <SelectItem key={s.device} value={s.device}>{s.device}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <label className="text-sm font-medium text-muted-foreground">Browser</label>
-          <select id="browser-select" value={selectedBrowser} onChange={(e) => setSelectedBrowser(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
-            <option value="all">All Browsers</option>
-            {stats?.browserStats.map(s => <option key={s.browser} value={s.browser}>{s.browser}</option>)}
-          </select>
+          <Label htmlFor="browser-select" className="text-sm font-medium text-muted-foreground">Browser</Label>
+          <Select value={selectedBrowser} onValueChange={setSelectedBrowser}>
+            <SelectTrigger id="browser-select" className="mt-1 w-full"><SelectValue placeholder="All Browsers" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Browsers</SelectItem>
+              {stats?.browserStats.map(s => <SelectItem key={s.browser} value={s.browser}>{s.browser}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <label className="text-sm font-medium text-muted-foreground">OS</label>
-          <select id="os-select" value={selectedOs} onChange={(e) => setSelectedOs(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
-            <option value="all">All OS</option>
-            {stats?.osStats.map(s => <option key={s.os} value={s.os}>{s.os}</option>)}
-          </select>
+          <Label htmlFor="os-select" className="text-sm font-medium text-muted-foreground">OS</Label>
+          <Select value={selectedOs} onValueChange={setSelectedOs}>
+            <SelectTrigger id="os-select" className="mt-1 w-full"><SelectValue placeholder="All OS" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All OS</SelectItem>
+              {stats?.osStats.map(s => <SelectItem key={s.os} value={s.os}>{s.os}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 min-w-[300px]">
-          <label className="text-sm font-medium text-muted-foreground">Date Range</label>
+          <Label className="text-sm font-medium text-muted-foreground">Date Range</Label>
           <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         </div>
       </div>

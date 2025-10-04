@@ -35,7 +35,7 @@ export default async function WebsiteLayout({
 
   return (
     <div className="flex flex-col h-screen">
-      <header className="flex-shrink-0 p-4 border-b bg-white shadow-sm">
+      <header className="shrink-0 p-4 border-b bg-white shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <Button asChild variant="ghost" size="icon">
@@ -67,7 +67,7 @@ export default async function WebsiteLayout({
           </div>
         </div>
       </header>
-      <main className="flex-grow text-center items-center mt-2">
+      <main className="grow text-center items-center mt-2">
         {React.Children.map(children, (child) => {
           if (React.isValidElement(child)) {
             return React.cloneElement(child, {

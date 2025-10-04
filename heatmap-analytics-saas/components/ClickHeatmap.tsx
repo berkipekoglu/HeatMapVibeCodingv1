@@ -4,6 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import H from "heatmap.js";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Type definitions
 interface HeatmapEvent {
@@ -27,7 +35,12 @@ interface HeatmapProps {
   stats: StatsData | null;
 }
 
-export default function ClickHeatmap({ websiteId, websiteUrl, initialPages, stats }: HeatmapProps) {
+export default function ClickHeatmap({
+  websiteId,
+  websiteUrl,
+  initialPages,
+  stats,
+}: HeatmapProps) {
   const [eventData, setEventData] = useState<HeatmapEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState("Loading click data...");
@@ -58,12 +71,14 @@ export default function ClickHeatmap({ websiteId, websiteUrl, initialPages, stat
           url: selectedPage,
           ...(dateRange?.from && { startDate: dateRange.from.toISOString() }),
           ...(dateRange?.to && { endDate: dateRange.to.toISOString() }),
-          ...(selectedDevice !== 'all' && { device: selectedDevice }),
-          ...(selectedBrowser !== 'all' && { browser: selectedBrowser }),
-          ...(selectedOs !== 'all' && { os: selectedOs }),
+          ...(selectedDevice !== "all" && { device: selectedDevice }),
+          ...(selectedBrowser !== "all" && { browser: selectedBrowser }),
+          ...(selectedOs !== "all" && { os: selectedOs }),
         });
 
-        const dataRes = await fetch(`/api/websites/${websiteId}/clicks?${params.toString()}`);
+        const dataRes = await fetch(
+          `/api/websites/${websiteId}/clicks?${params.toString()}`
+        );
         if (!dataRes.ok) throw new Error("Failed to fetch click data");
         const data = await dataRes.json();
         console.log("Fetched heatmap data:", data);
@@ -95,7 +110,14 @@ export default function ClickHeatmap({ websiteId, websiteUrl, initialPages, stat
     return () => {
       if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
     };
-  }, [websiteId, selectedPage, dateRange, selectedDevice, selectedBrowser, selectedOs]);
+  }, [
+    websiteId,
+    selectedPage,
+    dateRange,
+    selectedDevice,
+    selectedBrowser,
+    selectedOs,
+  ]);
 
   // ... (handleImageLoad and heatmap rendering useEffect remain the same)
   const handleImageLoad = () => {
@@ -103,9 +125,11 @@ export default function ClickHeatmap({ websiteId, websiteUrl, initialPages, stat
     if (!img) return;
 
     if (img.src.includes("placeholder.svg")) {
-      setStatusMessage("Generating website preview... (this may take a moment)");
+      setStatusMessage(
+        "Generating website preview... (this may take a moment)"
+      );
       pollingTimeoutRef.current = setTimeout(() => {
-        const newUrl = `${screenshotUrl.split('&t=')[0]}&t=${Date.now()}`;
+        const newUrl = `${screenshotUrl.split("&t=")[0]}&t=${Date.now()}`;
         setScreenshotUrl(newUrl);
       }, 3000);
     } else {
@@ -118,7 +142,13 @@ export default function ClickHeatmap({ websiteId, websiteUrl, initialPages, stat
   };
 
   useEffect(() => {
-    if (isLoading || !screenshotUrl || !eventData.length || !heatmapContainerRef.current || !screenshotRef.current) {
+    if (
+      isLoading ||
+      !screenshotUrl ||
+      !eventData.length ||
+      !heatmapContainerRef.current ||
+      !screenshotRef.current
+    ) {
       return;
     }
     const img = screenshotRef.current;
@@ -131,52 +161,123 @@ export default function ClickHeatmap({ websiteId, websiteUrl, initialPages, stat
         heatmapContainerRef.current.style.height = `${img.naturalHeight}px`;
       }
       if (!heatmapInstance.current) {
-        heatmapInstance.current = H.create({ container: heatmapContainerRef.current, radius: 25, maxOpacity: 0.6, minOpacity: 0.1, blur: .85 });
+        heatmapInstance.current = H.create({
+          container: heatmapContainerRef.current,
+          radius: 25,
+          maxOpacity: 0.6,
+          minOpacity: 0.1,
+          blur: 0.85,
+        });
       }
       const dataPoints = eventData.map((event) => ({
         x: Math.round(event.x * (screenshotWidth / event.viewport_width)),
         y: event.y,
         value: 1,
       }));
-      console.log(`Passing ${dataPoints.length} data points to heatmap.js`, dataPoints.slice(0, 5)); // Log first 5 points
+      console.log(
+        `Passing ${dataPoints.length} data points to heatmap.js`,
+        dataPoints.slice(0, 5)
+      ); // Log first 5 points
       heatmapInstance.current.setData({ max: 5, data: dataPoints });
     };
     if (img.complete) setupHeatmap();
     else img.onload = setupHeatmap;
   }, [isLoading, screenshotUrl, eventData]);
 
+  // ... (rest of the imports)
+
+  // ... (rest of the component code)
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-card">
         <div className="flex-1 min-w-[150px]">
-          <label htmlFor="page-select" className="text-sm font-medium text-muted-foreground">Page</label>
-          <select id="page-select" value={selectedPage} onChange={(e) => setSelectedPage(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
-            {pages.map(page => <option key={page} value={page}>{new URL(page).pathname}</option>)}
-          </select>
+          <Label
+            htmlFor="page-select"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            Page
+          </Label>
+          <Select value={selectedPage} onValueChange={setSelectedPage}>
+            <SelectTrigger id="page-select" className="mt-1 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {pages.map((page) => (
+                <SelectItem key={page} value={page}>
+                  {new URL(page).pathname}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <label className="text-sm font-medium text-muted-foreground">Device</label>
-          <select id="device-select" value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
-            <option value="all">All Devices</option>
-            {stats?.deviceStats.map(s => <option key={s.device} value={s.device}>{s.device}</option>)}
-          </select>
+          <Label
+            htmlFor="device-select"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            Device
+          </Label>
+          <Select value={selectedDevice} onValueChange={setSelectedDevice}>
+            <SelectTrigger id="device-select" className="mt-1 w-full">
+              <SelectValue placeholder="All Devices" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Devices</SelectItem>
+              {stats?.deviceStats.map((s) => (
+                <SelectItem key={s.device} value={s.device}>
+                  {s.device}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <label className="text-sm font-medium text-muted-foreground">Browser</label>
-          <select id="browser-select" value={selectedBrowser} onChange={(e) => setSelectedBrowser(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
-            <option value="all">All Browsers</option>
-            {stats?.browserStats.map(s => <option key={s.browser} value={s.browser}>{s.browser}</option>)}
-          </select>
+          <Label
+            htmlFor="browser-select"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            Browser
+          </Label>
+          <Select value={selectedBrowser} onValueChange={setSelectedBrowser}>
+            <SelectTrigger id="browser-select" className="mt-1 w-full">
+              <SelectValue placeholder="All Browsers" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Browsers</SelectItem>
+              {stats?.browserStats.map((s) => (
+                <SelectItem key={s.browser} value={s.browser}>
+                  {s.browser}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
-          <label className="text-sm font-medium text-muted-foreground">OS</label>
-          <select id="os-select" value={selectedOs} onChange={(e) => setSelectedOs(e.target.value)} className="mt-1 block w-full p-2 border rounded-md bg-background shadow-sm text-sm">
-            <option value="all">All OS</option>
-            {stats?.osStats.map(s => <option key={s.os} value={s.os}>{s.os}</option>)}
-          </select>
+          <Label
+            htmlFor="os-select"
+            className="text-sm font-medium text-muted-foreground"
+          >
+            OS
+          </Label>
+          <Select value={selectedOs} onValueChange={setSelectedOs}>
+            <SelectTrigger id="os-select" className="mt-1 w-full">
+              <SelectValue placeholder="All OS" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All OS</SelectItem>
+              {stats?.osStats.map((s) => (
+                <SelectItem key={s.os} value={s.os}>
+                  {s.os}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex-1 min-w-[300px]">
-          <label className="text-sm font-medium text-muted-foreground">Date Range</label>
+          <Label className="text-sm font-medium text-muted-foreground">
+            Date Range
+          </Label>
           <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         </div>
       </div>

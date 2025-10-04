@@ -1,7 +1,22 @@
-Data passed to DeviceChart: 
-[
-    {
-        "device": "desktop",
-        "count": "2"
-    }
-]
+dökümantasyon: https://ui.shadcn.com/docs/components/select
+
+örnek kullanım: 
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+<Select>
+  <SelectTrigger className="w-[180px]">
+    <SelectValue placeholder="Theme" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="light">Light</SelectItem>
+    <SelectItem value="dark">Dark</SelectItem>
+    <SelectItem value="system">System</SelectItem>
+  </SelectContent>
+</Select>
